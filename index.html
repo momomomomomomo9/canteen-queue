@@ -3,169 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>平和学校叫号系统-全交互版</title>
+    <title>Queue Helper for Pinghe School</title>
     <style>
         :root { --blue: #007aff; --green: #07c160; --orange: #ff9500; --red: #ff3b30; --bg: #f2f2f7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 30px; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 30px; transition: all 0.3s; }
         
-        /* 顶部与标题 */
+        /* 顶部栏 */
         .header { background: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
-        .queue-id { color: var(--blue); font-size: 13px; font-weight: bold; background: #eef6ff; padding: 4px 10px; border-radius: 20px; }
+        .lang-btn { background: var(--blue); color: #fff; border: none; padding: 4px 12px; border-radius: 15px; font-size: 12px; cursor: pointer; }
+        
+        /* 主信息 */
         .main-info { background: #fff; padding: 20px 16px; margin-bottom: 10px; }
+        .queue-id { color: var(--blue); font-size: 12px; font-weight: bold; margin-bottom: 5px; }
         
-        /* 四个功能图标 - 增加点击效果 */
+        /* 四个功能图标 */
         .icon-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 20px 16px; background: #fff; margin-bottom: 10px; text-align: center; }
-        .nav-item { cursor: pointer; transition: transform 0.1s; }
-        .nav-item:active { transform: scale(0.9); }
-        .nav-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; margin: 0 auto 8px; }
+        .nav-item { cursor: pointer; }
+        .nav-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; margin: 0 auto 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .nav-text { font-size: 12px; color: #333; font-weight: 500; }
         
-        /* 弹窗样式 (核心功能) */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
-        .modal-content { background: #fff; width: 85%; max-width: 320px; border-radius: 16px; padding: 20px; text-align: center; position: relative; }
-        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; color: #999; cursor: pointer; }
+        /* 弹窗 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: #fff; width: 85%; max-width: 320px; border-radius: 20px; padding: 25px; text-align: center; position: relative; animation: slideUp 0.3s; }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; color: #ccc; cursor: pointer; }
         
-        /* 按钮与卡片 */
-        .card { background: #fff; margin: 12px; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .btn { border: none; border-radius: 12px; padding: 15px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        /* 卡片与按钮 */
+        .card { background: #fff; margin: 12px; border-radius: 16px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
+        .big-num { font-size: 72px; font-weight: 800; color: var(--blue); margin: 15px 0; }
+        .btn { border: none; border-radius: 12px; padding: 16px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
         .btn-blue { background: var(--blue); color: #fff; }
         .btn-red { background: var(--red); color: #fff; }
         
-        /* 号码外观 */
-        .big-num { font-size: 64px; font-weight: 800; color: var(--blue); margin: 10px 0; }
-        .qr-mock { width: 150px; height: 150px; background: #eee; margin: 15px auto; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd; }
+        .notice { padding: 15px; font-size: 13px; color: #666; line-height: 1.6; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="queue-id">编号: 106409</div>
-    <div style="font-weight: bold;">排队叫号助手</div>
-    <div>•••</div>
+    <div class="queue-id">ID: 106409</div>
+    <div style="font-weight: bold;" data-key="appName">排队叫号助手</div>
+    <button class="lang-btn" onclick="toggleLang()">English</button>
 </div>
 
 <div class="main-info">
-    <h1 style="margin:0; font-size:22px;">平和学校吃饭排队</h1>
-    <div style="color:var(--green); font-size:14px; margin-top:5px;">● 取号开启中</div>
+    <h1 style="margin:0; font-size:22px;" data-key="schoolName">平和学校食堂排队</h1>
+    <div style="color:var(--green); font-size:14px; margin-top:5px;">● <span data-key="statusOpen">取号开启中</span></div>
 </div>
 
 <div class="icon-nav">
     <div class="nav-item" onclick="openModal('callModal')">
-        <div class="nav-icon" style="background: var(--red);">🔊</div><span>开始叫号</span>
+        <div class="nav-icon" style="background: var(--red);">🔊</div><span class="nav-text" data-key="navCall">开始叫号</span>
     </div>
     <div class="nav-item" onclick="openModal('resetModal')">
-        <div class="nav-icon" style="background: var(--orange);">🔄</div><span>号码归零</span>
+        <div class="nav-icon" style="background: var(--orange);">🔄</div><span class="nav-text" data-key="navReset">号码归零</span>
     </div>
     <div class="nav-item" onclick="openModal('qrModal')">
-        <div class="nav-icon" style="background: #333;">🔳</div><span>排队码</span>
+        <div class="nav-icon" style="background: #333;">🔳</div><span class="nav-text" data-key="navQR">排队码</span>
     </div>
     <div class="nav-item" onclick="openModal('screenModal')">
-        <div class="nav-icon" style="background: var(--green);">🖥️</div><span>大屏地址</span>
+        <div class="nav-icon" style="background: var(--green);">🖥️</div><span class="nav-text" data-key="navScreen">大屏地址</span>
     </div>
 </div>
 
 <div id="myTicketCard" class="card" style="display:none;">
-    <div style="text-align:center;">
-        <div style="color:var(--blue); font-weight:bold;">我的号码</div>
-        <div class="big-num" id="myNumDisplay">001</div>
-        <p id="waitText" style="font-size:14px; color:#666;">等待中...</p>
-        <button class="btn" style="background:#f2f2f7; color:#666;" onclick="cancelTicket()">取消排队</button>
-    </div>
+    <div style="color:var(--blue); font-weight:bold;" data-key="myNumberTitle">我的号码</div>
+    <div class="big-num" id="myNumDisplay">000</div>
+    <p id="waitText" data-key="waiting">正在获取排队信息...</p>
+    <button class="btn" style="background:#f2f2f7; color:#666;" onclick="cancelTicket()" data-key="cancelBtn">取消排队</button>
 </div>
 
 <div class="card" id="takeTicketArea">
-    <button class="btn btn-blue" onclick="takeTicket()">立即领取排队号</button>
+    <button class="btn btn-blue" onclick="takeTicket()" data-key="takeBtn">立即领取排队号</button>
+</div>
+
+<div class="notice">
+    <strong>Notice:</strong> <span data-key="noticeContent">请留意语音叫号，过号需重新排队。</span>
 </div>
 
 <div id="callModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal('callModal')">&times;</span>
-        <h3>语音叫号控制</h3>
-        <p>当前正在处理：<b id="nowCall" style="color:var(--red)">无</b></p>
-        <button class="btn btn-blue" onclick="doCallNext()">🔊 呼叫下一位</button>
-        <p style="font-size:12px; color:#999; margin-top:10px;">点击将自动播放语音播报</p>
+        <h3 data-key="callTitle">语音叫号控制</h3>
+        <p><span data-key="nowCalling">当前处理</span>: <b id="nowCall" style="color:var(--red)">N/A</b></p>
+        <button class="btn btn-blue" onclick="doCallNext()" data-key="nextBtn">🔊 呼叫下一位</button>
     </div>
 </div>
 
 <div id="resetModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal('resetModal')">&times;</span>
-        <h3>数据重置</h3>
-        <p>确定要清空今天的排队记录吗？<br>此操作不可撤销。</p>
-        <button class="btn btn-red" onclick="doReset()">确定全部归零</button>
+        <h3 data-key="resetTitle">重置数据</h3>
+        <p data-key="resetWarning">确定要清空所有记录吗？</p>
+        <button class="btn btn-red" onclick="doReset()" data-key="confirmReset">确定归零</button>
     </div>
 </div>
 
 <div id="qrModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal('qrModal')">&times;</span>
-        <h3>扫码排队</h3>
-        <div class="qr-mock">
-            <div style="text-align:center; font-size:12px; color:#999;">[ 二维码图片 ]<br>此处应放网址二维码</div>
-        </div>
-        <p style="font-size:14px;">让学生扫此码进入系统</p>
+        <h3 data-key="navQR">排队码</h3>
+        <div style="background:#eee; height:150px; margin:20px 0; display:flex; align-items:center; justify-content:center; color:#999;">QR CODE</div>
+        <p data-key="qrDesc">请同学扫码取号</p>
     </div>
 </div>
 
 <div id="screenModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal('screenModal')">&times;</span>
-        <h3>大屏展示地址</h3>
-        <p style="font-size:14px; word-break:break-all; background:#f7f7f7; padding:10px;">
-            https://momomomomomomo9.github.io/canteen-queue/
-        </p>
-        <button class="btn btn-blue" onclick="alert('已在新窗口模拟大屏')">打开大屏模式</button>
+        <h3 data-key="navScreen">大屏地址</h3>
+        <p style="font-size:12px; background:#f7f7f7; padding:10px; word-break:break-all;">https://momomomomomomo9.github.io/canteen-queue/</p>
     </div>
 </div>
 
 <script>
+    // 语言字典
+    const langData = {
+        'zh': {
+            'appName': '排队叫号助手', 'schoolName': '平和学校食堂排队', 'statusOpen': '取号开启中',
+            'navCall': '开始叫号', 'navReset': '号码归零', 'navQR': '排队码', 'navScreen': '大屏地址',
+            'takeBtn': '立即领取排队号', 'myNumberTitle': '我的号码', 'waiting': '前面还有 {n} 人',
+            'cancelBtn': '取消排队', 'callTitle': '语音叫号控制', 'nowCalling': '当前处理',
+            'nextBtn': '呼叫下一位', 'resetTitle': '重置数据', 'resetWarning': '确定要清空记录吗？',
+            'confirmReset': '确定归零', 'qrDesc': '让同学扫码进入', 'noticeContent': '请留意语音叫号，过号需重新排队。'
+        },
+        'en': {
+            'appName': 'Queue Helper', 'schoolName': 'Pinghe Canteen Queue', 'statusOpen': 'Queueing Open',
+            'navCall': 'Call Next', 'navReset': 'Reset All', 'navQR': 'QR Code', 'navScreen': 'Display',
+            'takeBtn': 'Get Your Number', 'myNumberTitle': 'Your Number', 'waiting': '{n} people ahead',
+            'cancelBtn': 'Cancel', 'callTitle': 'Voice Control', 'nowCalling': 'Now Serving',
+            'nextBtn': 'Call Next Person', 'resetTitle': 'Reset Data', 'resetWarning': 'Clear all records?',
+            'confirmReset': 'Reset Now', 'qrDesc': 'Scan to Join Queue', 'noticeContent': 'Please listen for your number.'
+        }
+    };
+
+    let currentLang = 'zh';
     let queue = []; let current = 0; let myNum = null;
 
-    // 弹窗逻辑
+    function toggleLang() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        document.querySelector('.lang-btn').innerText = currentLang === 'zh' ? 'English' : '中文';
+        updateLangDisplay();
+    }
+
+    function updateLangDisplay() {
+        document.querySelectorAll('[data-key]').forEach(el => {
+            const key = el.getAttribute('data-key');
+            let text = langData[currentLang][key];
+            if (key === 'waiting' && myNum) {
+                let pos = queue.indexOf(myNum);
+                text = text.replace('{n}', pos >= 0 ? pos : 0);
+            }
+            el.innerText = text;
+        });
+    }
+
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // 取号逻辑
     function takeTicket() {
         let n = (queue.length > 0 ? queue[queue.length-1] : Math.max(current, 0)) + 1;
         myNum = n; queue.push(n);
         document.getElementById('myTicketCard').style.display = 'block';
         document.getElementById('takeTicketArea').style.display = 'none';
         document.getElementById('myNumDisplay').innerText = n.toString().padStart(3, '0');
-        updateUI();
+        updateLangDisplay();
     }
 
-    // 叫号逻辑
     function doCallNext() {
         if(queue.length > 0) {
             current = queue.shift();
-            document.getElementById('nowCall').innerText = current.toString().padStart(3, '0') + "号";
-            const msg = new SpeechSynthesisUtterance("请" + current + "号取餐");
+            document.getElementById('nowCall').innerText = current.toString().padStart(3, '0');
+            const voiceText = currentLang === 'zh' ? `请${current}号取餐` : `Number ${current}, please pick up your meal`;
+            const msg = new SpeechSynthesisUtterance(voiceText);
+            msg.lang = currentLang === 'zh' ? 'zh-CN' : 'en-US';
             window.speechSynthesis.speak(msg);
-            updateUI();
-        } else { alert("无人排队"); }
+            updateLangDisplay();
+        } else { alert(currentLang === 'zh' ? "没人排队" : "No one in queue"); }
     }
 
-    // 归零逻辑
     function doReset() { queue = []; current = 0; location.reload(); }
+    function cancelTicket() { queue = queue.filter(x => x !== myNum); myNum = null; location.reload(); }
 
-    function cancelTicket() {
-        queue = queue.filter(x => x !== myNum);
-        myNum = null;
-        document.getElementById('myTicketCard').style.display = 'none';
-        document.getElementById('takeTicketArea').style.display = 'block';
-        updateUI();
-    }
-
-    function updateUI() {
-        if(myNum) {
-            let pos = queue.indexOf(myNum);
-            document.getElementById('waitText').innerText = pos >= 0 ? `前面还有 ${pos} 人` : "请立即前往取餐！";
-        }
-    }
+    updateLangDisplay();
 </script>
-
-</body>
-</html>
 
 </body>
 </html>
