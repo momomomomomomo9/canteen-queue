@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000; min-height: 14.0px}
+    span.s1 {font-kerning: none}
+  </style>
+</head>
+<body>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="zh-CN"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;title&gt;平和学校食堂排队助手&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;style&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>:root { --primary: #2ecc71; --bg: #f5f6fa; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 20px; width: 100%; max-width: 400px; margin-bottom: 20px; text-align: center; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>h2 { color: #2f3640; margin-top: 0; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.big-num { font-size: 48px; font-weight: bold; color: var(--primary); margin: 20px 0; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%; margin: 5px 0; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>button:active { filter: brightness(0.9); }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.info { color: #7f8c8d; font-size: 14px; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.call-list { text-align: left; list-style: none; padding: 0; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.call-list li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.status-tag { background: #e1b12c; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;body&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="card" id="student-view"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;h2&gt;学生取号&lt;/h2&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div id="my-ticket-box" style="display:none;"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;p&gt;您的号码是：&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="big-num" id="my-number"&gt;---&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;p class="info" id="wait-info"&gt;前面还有 0 人在等待&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;button onclick="cancelQueue()" style="background:#e74c3c"&gt;取消排队&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div id="get-ticket-box"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;p&gt;目前排队总数：&lt;span id="total-waiting"&gt;0&lt;/span&gt; 人&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;button onclick="getTicket()"&gt;立即取号&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="card" id="admin-view"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;h2&gt;食堂叫号管理&lt;/h2&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="info"&gt;当前正在处理：&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="big-num" id="current-calling"&gt;无&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;button onclick="nextNumber()" style="background:#3498db"&gt;呼叫下一位&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;button onclick="resetQueue()" style="background:#95a5a6"&gt;营业结束/清零&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;ul class="call-list" id="queue-list"&gt;&lt;/ul&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// 模拟数据库数据</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let queue = []; // 等待队列</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let currentNum = 0; // 当前叫号</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let myTicket = null; // 我的号码</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// 初始化显示</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>updateDisplay();</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// --- 学生逻辑 ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function getTicket() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let nextNum = (queue.length &gt; 0 ? queue[queue.length - 1] : (currentNum || 0)) + 1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>queue.push(nextNum);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>myTicket = nextNum;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>showStudentStatus();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>updateDisplay();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function showStudentStatus() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('get-ticket-box').style.display = 'none';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('my-ticket-box').style.display = 'block';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('my-number').innerText = myTicket.toString().padStart(3, '0');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function cancelQueue() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>queue = queue.filter(n =&gt; n !== myTicket);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>myTicket = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('get-ticket-box').style.display = 'block';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('my-ticket-box').style.display = 'none';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>updateDisplay();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// --- 管理员逻辑 ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function nextNumber() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (queue.length &gt; 0) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>currentNum = queue.shift();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>// 语音播报功能</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>speak(`请 ${currentNum} 号同学到档口取餐`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>if(myTicket === currentNum) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>alert("到你了！请快去取餐！");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>myTicket = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>document.getElementById('get-ticket-box').style.display = 'block';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>document.getElementById('my-ticket-box').style.display = 'none';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>updateDisplay();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>alert("目前没有人排队哦");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function resetQueue() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if(confirm("确定要全部清零吗？")) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>queue = [];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>currentNum = 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>myTicket = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>updateDisplay();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>location.reload();<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// --- 通用更新界面 ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function updateDisplay() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// 更新管理端显示</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('current-calling').innerText = currentNum &gt; 0 ? currentNum.toString().padStart(3, '0') : "无";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.getElementById('total-waiting').innerText = queue.length;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">            </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// 更新排队列表</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const listEl = document.getElementById('queue-list');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>listEl.innerHTML = queue.slice(0, 5).map(n =&gt; `&lt;li&gt;&lt;span&gt;号码: ${n.toString().padStart(3, '0')}&lt;/span&gt; &lt;span class="status-tag"&gt;等待中&lt;/span&gt;&lt;/li&gt;`).join('');</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">            </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// 更新学生端排队信息</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if(myTicket) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>let index = queue.indexOf(myTicket);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>document.getElementById('wait-info').innerText = index &gt;= 0 ? `前面还有 ${index} 人在等待` : "正在叫号或已过号";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// 语音播报函数</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function speak(text) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const msg = new SpeechSynthesisUtterance(text);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>msg.lang = 'zh-CN';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>window.speechSynthesis.speak(msg);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+</body>
+</html>
