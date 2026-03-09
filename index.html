@@ -2,168 +2,207 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>排队叫号助手 - 平和学校</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>平和学校吃饭排队叫号助手</title>
     <style>
-        :root { --blue: #007aff; --green: #07c160; --gray: #f2f2f2; --red: #ff3b30; }
-        body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; background: #f7f7f7; margin: 0; padding-bottom: 50px; }
-        .header { background: #fff; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; }
-        .queue-info { padding: 15px; background: #fff; margin-bottom: 10px; position: relative; }
-        .queue-id { color: var(--blue); font-size: 14px; font-weight: bold; }
-        .queue-title { font-size: 20px; font-weight: bold; margin: 8px 0; }
-        .status-tag { display: inline-flex; align-items: center; font-size: 14px; }
-        .dot { width: 12px; height: 12px; background: var(--green); border-radius: 50%; margin-right: 5px; }
+        :root { --blue: #007aff; --green: #07c160; --orange: #ff9500; --red: #ff3b30; --bg: #f2f2f7; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; color: #333; -webkit-font-smoothing: antialiased; }
         
-        /* 核心号码区 */
-        .number-card { background: #fff; padding: 30px 15px; text-align: center; border-radius: 12px; margin: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .my-num-title { font-size: 24px; color: var(--blue); font-weight: bold; }
-        .big-num { font-size: 80px; font-weight: bold; color: var(--blue); margin: 15px 0; }
+        /* 顶部状态栏 */
+        .status-bar { background: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e5e5; }
+        .queue-id-pill { background: #eef6ff; color: var(--blue); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
         
-        /* 详情网格 */
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .info-item { border: 1px solid var(--blue); border-radius: 4px; display: flex; overflow: hidden; font-size: 13px; }
-        .info-label { background: var(--blue); color: white; padding: 8px 5px; width: 60px; }
-        .info-val { background: white; color: var(--blue); padding: 8px 5px; flex: 1; }
+        /* 主信息区 */
+        .main-info { background: #fff; padding: 20px 16px; margin-bottom: 10px; }
+        .title-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        .queue-name { font-size: 24px; font-weight: 800; margin: 0; }
+        .toggle-box { text-align: right; }
         
-        /* 公告区 */
-        .notice { background: #e1f5fe; color: #01579b; padding: 15px; margin: 10px; border-radius: 8px; font-size: 13px; line-height: 1.6; }
+        /* 核心卡片样式 */
+        .card { background: #fff; margin: 12px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .card-header { padding: 15px; border-bottom: 1px solid #f2f2f2; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px; }
         
-        /* 操作按钮 */
-        .btn-group { padding: 0 10px; }
-        button { border: none; padding: 12px; border-radius: 6px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        /* 号码显示区 */
+        .my-number-box { text-align: center; padding: 10px 0; }
+        .my-number-label { color: var(--blue); font-size: 26px; font-weight: bold; }
+        .big-number { font-size: 88px; font-weight: 900; color: var(--blue); line-height: 1.2; font-variant-numeric: tabular-nums; }
+        .time-stamp { color: #8e8e93; font-size: 14px; margin-bottom: 20px; }
+        
+        /* 数据网格 */
+        .data-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .grid-item { border: 1.5px solid var(--blue); border-radius: 8px; display: flex; font-size: 14px; }
+        .grid-label { background: var(--blue); color: #fff; padding: 10px 8px; min-width: 65px; text-align: center; }
+        .grid-value { background: #fff; color: var(--blue); padding: 10px 8px; flex: 1; font-weight: bold; text-align: center; }
+        
+        /* 底部操作区 */
+        .action-bar { padding: 0 12px; }
+        .btn { border: none; border-radius: 12px; padding: 16px; width: 100%; font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 12px; transition: opacity 0.2s; }
+        .btn:active { opacity: 0.7; }
         .btn-primary { background: var(--blue); color: white; }
-        .btn-cancel { background: #fff; color: var(--blue); border: 1px solid var(--blue); }
-        .btn-admin { background: var(--green); color: white; }
+        .btn-outline { background: white; color: var(--blue); border: 2px solid var(--blue); }
+        .btn-green { background: var(--green); color: white; }
         
-        /* 管理员面板 */
-        .admin-panel { background: #fff; margin: 20px 10px; padding: 15px; border-radius: 10px; border: 2px dashed #ccc; }
-        .setting-item { margin-bottom: 15px; font-size: 14px; }
-        input { width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        /* 四个功能圆圈图标 */
+        .icon-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 20px 16px; background: #fff; margin-bottom: 10px; text-align: center; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 14px; }
+        .nav-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; }
+        
+        /* 进阶公告栏 */
+        .pro-notice { background: #fff; margin: 12px; padding: 15px; border-radius: 12px; border-left: 5px solid var(--blue); }
+        .pro-notice h4 { margin: 0 0 8px 0; color: var(--blue); }
+        .pro-notice p { margin: 0; font-size: 14px; color: #666; line-height: 1.5; }
+
+        /* 动画提示 */
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .calling-now { color: var(--red); animation: pulse 1.5s infinite; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <span style="font-size: 20px;">🏠</span>
-    <span style="font-weight: bold;">排队叫号助手</span>
-    <span style="font-size: 20px;">⚙️</span>
+<div class="status-bar">
+    <div class="queue-id-pill">队列编号：106409</div>
+    <div style="font-weight: bold;">排队叫号助手</div>
+    <div style="color: #8e8e93;">●●●</div>
 </div>
 
-<div class="queue-info">
-    <div class="queue-id">队列编号：106409</div>
-    <div class="queue-title">平和学校吃饭排队</div>
-    <div class="status-tag"><span class="dot"></span> 取号开启中</div>
-</div>
-
-<div id="studentSection" class="number-card" style="display: none;">
-    <div class="my-num-title">我的号码：<span id="displayMyNum">000</span></div>
-    <div class="big-num" id="displayMyNumBig">001</div>
-    <div style="font-size: 14px; color: #666; margin-bottom: 15px;">取号时间：<span id="takeTime"></span></div>
-    
-    <div class="info-grid">
-        <div class="info-item"><div class="info-label">当前时间</div><div class="info-val" id="clock">--:--:--</div></div>
-        <div class="info-item"><div class="info-label">排队单号</div><div class="info-val">noyq9cue</div></div>
-        <div class="info-item"><div class="info-label">当前状态</div><div class="info-val" id="p-status">等待叫号</div></div>
-        <div class="info-item"><div class="info-label">当前叫号</div><div class="info-val" id="p-current">无</div></div>
+<div class="main-info">
+    <div class="title-row">
+        <div>
+            <h1 class="queue-name">平和学校吃饭排队</h1>
+            <div style="color: var(--green); font-size: 14px; margin-top: 5px;">● 取号开启中</div>
+        </div>
+        <div class="toggle-box">
+            <div style="font-size: 12px; color: #999;">开关</div>
+            <div style="width: 50px; height: 26px; background: var(--green); border-radius: 13px; margin-top: 4px; position: relative;">
+                <div style="width: 22px; height: 22px; background: #fff; border-radius: 50%; position: absolute; right: 2px; top: 2px;"></div>
+            </div>
+        </div>
     </div>
-    
-    <button class="btn-cancel" onclick="cancelTicket()">取消排队</button>
-    <p style="font-size: 14px;">您前面还有未结束：<span id="waitCount" style="color:red; font-weight:bold;">0</span> 人</p>
 </div>
 
-<div id="takeSection" class="btn-group">
-    <button class="btn-primary" onclick="takeTicket()">立即取号</button>
+<div class="icon-nav">
+    <div class="nav-item"><div class="nav-icon" style="background: var(--red);">🔊</div><span>开始叫号</span></div>
+    <div class="nav-item"><div class="nav-icon" style="background: var(--orange);">🔄</div><span>号码归零</span></div>
+    <div class="nav-item"><div class="nav-icon" style="background: #333;">🔳</div><span>排队码</span></div>
+    <div class="nav-item"><div class="nav-icon" style="background: var(--green);">🖥️</div><span>大屏地址</span></div>
 </div>
 
-<div class="notice">
-    <strong>公告：</strong> “排队叫号助手”小程序永久免费使用，性能稳定且专人进行维护。祝您生活愉快，愿“排队叫号助手”能帮助您解决工作或生活中的排队难题 ^_^
-</div>
-
-<div class="admin-panel">
-    <h3 style="margin-top:0">管理后台 (模拟)</h3>
-    <div class="setting-item">
-        每人每天限取：<input type="number" value="3"> 次
+<div id="studentCard" class="card" style="display: none;">
+    <div class="card-body">
+        <div class="my-number-box">
+            <div class="my-number-label">我的号码：<span id="myNumText">001</span></div>
+            <div class="big-number" id="myNumBig">001</div>
+            <div class="time-stamp">取号时间：<span id="takeTime"></span></div>
+        </div>
+        
+        <div class="data-grid">
+            <div class="grid-item"><div class="grid-label">当前时间</div><div class="grid-value" id="timer">--:--</div></div>
+            <div class="grid-item"><div class="grid-label">排队单号</div><div class="grid-value" style="font-size: 10px;">noyq9cue</div></div>
+            <div class="grid-item"><div class="grid-label">当前状态</div><div class="grid-value" id="statusLabel">等待中</div></div>
+            <div class="grid-item"><div class="grid-label">当前叫号</div><div class="grid-value" id="currentCall">无</div></div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <p style="font-size: 15px;">您前面还有未结束：<span id="waitPpl" style="color: var(--red); font-weight: bold; font-size: 20px;">0</span> 人</p>
+            <p style="font-size: 12px; color: #999;">预计还需等待：<span id="waitTime">0</span> 分钟</p>
+            <button class="btn btn-outline" style="margin-top: 15px;" onclick="cancelTicket()">取消排队</button>
+        </div>
     </div>
-    <div class="setting-item">
-        语音播报内容：<input type="text" value="请#号取餐" style="width:150px;">
+</div>
+
+<div id="actionArea" class="action-bar">
+    <button class="btn btn-primary" onclick="takeTicket()">立即领取排队号</button>
+</div>
+
+<div class="pro-notice">
+    <h4>📢 食堂公告</h4>
+    <p>1. 请同学们领号后在走廊有序等候，不要拥挤。<br>2. 听到语音叫号后请在1分钟内前往柜台取餐。<br>3. 每日凌晨4点系统将自动清零号码。</p>
+</div>
+
+<div class="card" style="background: #fdfdfd; border: 1px dashed #ccc;">
+    <div class="card-header"><strong>管理员快捷操作 (老板用)</strong></div>
+    <div class="card-body">
+        <button class="btn btn-green" onclick="nextCall()">🔊 呼叫下一位</button>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-outline" style="font-size: 14px; padding: 8px;" onclick="resetNum()">数据归零</button>
+            <button class="btn btn-outline" style="font-size: 14px; padding: 8px;" onclick="showHistory()">查看历史记录</button>
+        </div>
     </div>
-    <button class="btn-admin" onclick="callNext()">开始叫号 (呼叫下一位)</button>
-    <button style="background:#8e8e93; color:white;" onclick="resetAll()">号码归零</button>
 </div>
 
 <script>
     let queue = [];
-    let currentCalling = 0;
-    let myNum = null;
+    let current = 0;
+    let myNumber = null;
 
-    // 每一秒更新一次时钟
+    // 每秒更新时钟
     setInterval(() => {
-        const now = new Date();
-        document.getElementById('clock').innerText = now.getHours().toString().padStart(2,'0') + ":" + 
-                                                   now.getMinutes().toString().padStart(2,'0') + ":" + 
-                                                   now.getSeconds().toString().padStart(2,'0');
+        const d = new Date();
+        document.getElementById('timer').innerText = d.toTimeString().split(' ')[0];
     }, 1000);
 
     function takeTicket() {
-        let last = queue.length > 0 ? queue[queue.length - 1] : Math.max(currentCalling, 0);
-        myNum = last + 1;
-        queue.push(myNum);
+        let next = (queue.length > 0 ? queue[queue.length-1] : Math.max(current, 0)) + 1;
+        myNumber = next;
+        queue.push(next);
         
-        document.getElementById('studentSection').style.display = 'block';
-        document.getElementById('takeSection').style.display = 'none';
-        document.getElementById('displayMyNum').innerText = myNum.toString().padStart(3, '0');
-        document.getElementById('displayMyNumBig').innerText = myNum.toString().padStart(3, '0');
+        document.getElementById('studentCard').style.display = 'block';
+        document.getElementById('actionArea').style.display = 'none';
+        document.getElementById('myNumText').innerText = next.toString().padStart(3, '0');
+        document.getElementById('myNumBig').innerText = next.toString().padStart(3, '0');
         document.getElementById('takeTime').innerText = new Date().toLocaleString();
+        
         updateUI();
     }
 
     function cancelTicket() {
-        queue = queue.filter(n => n !== myNum);
-        myNum = null;
-        document.getElementById('studentSection').style.display = 'none';
-        document.getElementById('takeSection').style.display = 'block';
-        updateUI();
-    }
-
-    function callNext() {
-        if (queue.length > 0) {
-            currentCalling = queue.shift();
-            // 语音播报
-            const speech = new SpeechSynthesisUtterance("请" + currentCalling + "号同学取餐");
-            window.speechSynthesis.speak(speech);
+        if(confirm("确定取消排队吗？")) {
+            queue = queue.filter(x => x !== myNumber);
+            myNumber = null;
+            document.getElementById('studentCard').style.display = 'none';
+            document.getElementById('actionArea').style.display = 'block';
             updateUI();
-        } else {
-            alert("无人排队");
         }
     }
 
-    function resetAll() {
-        if(confirm("确定要归零吗？")) {
-            queue = [];
-            currentCalling = 0;
-            myNum = null;
-            location.reload();
+    function nextCall() {
+        if(queue.length > 0) {
+            current = queue.shift();
+            // 语音播报：还原“请#号办理业务”功能
+            const msg = new SpeechSynthesisUtterance(`请${current}号同学到档口取餐`);
+            window.speechSynthesis.speak(msg);
+            updateUI();
+        } else {
+            alert("目前没有人排队哦！");
         }
     }
 
     function updateUI() {
-        document.getElementById('p-current').innerText = currentCalling > 0 ? currentCalling.toString().padStart(3, '0') : "无";
-        if (myNum) {
-            let idx = queue.indexOf(myNum);
-            document.getElementById('waitCount').innerText = idx >= 0 ? idx : 0;
-            if (myNum <= currentCalling) {
-                document.getElementById('p-status').innerText = "请去取餐";
-                document.getElementById('p-status').style.color = "red";
+        document.getElementById('currentCall').innerText = current > 0 ? current.toString().padStart(3, '0') : "无";
+        if(myNumber) {
+            let pos = queue.indexOf(myNumber);
+            if(pos === -1 && myNumber <= current) {
+                document.getElementById('statusLabel').innerText = "到您了！";
+                document.getElementById('statusLabel').classList.add('calling-now');
+                document.getElementById('waitPpl').innerText = "0";
+                document.getElementById('waitTime').innerText = "0";
             } else {
-                document.getElementById('p-status').innerText = "等待叫号";
-                document.getElementById('p-status').style.color = "var(--blue)";
+                document.getElementById('statusLabel').innerText = "等待叫号";
+                document.getElementById('statusLabel').classList.remove('calling-now');
+                document.getElementById('waitPpl').innerText = pos >= 0 ? pos : 0;
+                document.getElementById('waitTime').innerText = pos >= 0 ? (pos + 1) * 2 : 0; // 假设每人2分钟
             }
+        }
+    }
+
+    function resetNum() {
+        if(confirm("警告：这将清空所有排队数据，确定吗？")) {
+            queue = []; current = 0; myNumber = null;
+            location.reload();
         }
     }
 </script>
 
-</body>
-</html>
-    </script>
 </body>
 </html>
