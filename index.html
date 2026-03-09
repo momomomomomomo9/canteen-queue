@@ -3,191 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>Queue Helper for Pinghe School</title>
+    <title>Pinghe Canteen Queue - 平和学校</title>
     <style>
-        :root { --blue: #007aff; --green: #07c160; --orange: #ff9500; --red: #ff3b30; --bg: #f2f2f7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 30px; transition: all 0.3s; }
+        :root { --blue: #007aff; --green: #34c759; --orange: #ff9500; --red: #ff3b30; --bg: #f8f9fa; }
+        body { font-family: -apple-system, "SF Pro Display", sans-serif; background: var(--bg); margin: 0; color: #1d1d1f; }
         
-        /* 顶部栏 */
-        .header { background: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
-        .lang-btn { background: var(--blue); color: #fff; border: none; padding: 4px 12px; border-radius: 15px; font-size: 12px; cursor: pointer; }
+        /* 顶部装饰 */
+        .top-nav { background: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #efefef; }
+        .school-badge { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; }
+        .lang-switcher { background: #f2f2f7; border: none; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--blue); cursor: pointer; }
+
+        /* 主状态卡片 */
+        .hero-card { background: #fff; margin: 15px; padding: 25px 20px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
+        .hero-card::before { content: ""; position: absolute; top: 0; left: 0; width: 6px; height: 100%; background: var(--blue); }
+        .id-label { font-size: 12px; color: #8e8e93; letter-spacing: 1px; margin-bottom: 5px; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; background: var(--green); border-radius: 50%; margin-right: 5px; }
+
+        /* 四个功能小图标 */
+        .tool-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 0 15px; margin-bottom: 20px; }
+        .tool-item { background: #fff; padding: 12px 5px; border-radius: 16px; text-align: center; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        .tool-item:active { transform: scale(0.95); }
+        .tool-icon { font-size: 20px; margin-bottom: 5px; }
+        .tool-label { font-size: 11px; font-weight: 600; color: #666; }
+
+        /* 号码展示区 */
+        .number-display { text-align: center; margin: 20px 0; }
+        .num-label { font-size: 14px; color: #8e8e93; font-weight: 500; }
+        .num-value { font-size: 80px; font-weight: 800; color: var(--blue); line-height: 1; margin: 10px 0; font-variant-numeric: tabular-nums; }
         
-        /* 主信息 */
-        .main-info { background: #fff; padding: 20px 16px; margin-bottom: 10px; }
-        .queue-id { color: var(--blue); font-size: 12px; font-weight: bold; margin-bottom: 5px; }
-        
-        /* 四个功能图标 */
-        .icon-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 20px 16px; background: #fff; margin-bottom: 10px; text-align: center; }
-        .nav-item { cursor: pointer; }
-        .nav-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; margin: 0 auto 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .nav-text { font-size: 12px; color: #333; font-weight: 500; }
-        
-        /* 弹窗 */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: #fff; width: 85%; max-width: 320px; border-radius: 20px; padding: 25px; text-align: center; position: relative; animation: slideUp 0.3s; }
-        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; color: #ccc; cursor: pointer; }
-        
-        /* 卡片与按钮 */
-        .card { background: #fff; margin: 12px; border-radius: 16px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
-        .big-num { font-size: 72px; font-weight: 800; color: var(--blue); margin: 15px 0; }
-        .btn { border: none; border-radius: 12px; padding: 16px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
-        .btn:active { transform: scale(0.98); opacity: 0.9; }
-        .btn-blue { background: var(--blue); color: #fff; }
-        .btn-red { background: var(--red); color: #fff; }
-        
-        .notice { padding: 15px; font-size: 13px; color: #666; line-height: 1.6; }
+        /* 底部固定操作区 (和你要求的一样) */
+        .bottom-actions { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-top: 1px solid #eee; }
+        .btn { border: none; border-radius: 18px; padding: 18px 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+        .btn-take { background: var(--blue); color: #fff; box-shadow: 0 8px 20px rgba(0,122,255,0.3); }
+        .btn-call { background: var(--green); color: #fff; box-shadow: 0 8px 20px rgba(52,199,89,0.3); }
+        .btn span { font-size: 11px; opacity: 0.8; font-weight: 400; }
+
+        /* 弹窗样式 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 999; align-items: center; justify-content: center; }
+        .modal-content { background: #fff; width: 80%; max-width: 300px; padding: 30px; border-radius: 28px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .modal-close { margin-top: 20px; color: var(--blue); font-weight: 600; cursor: pointer; }
+
+        .notice-box { margin: 15px; padding: 15px; background: #fff; border-radius: 16px; font-size: 13px; color: #666; line-height: 1.5; border: 1px solid #eee; margin-bottom: 120px; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div class="queue-id">ID: 106409</div>
-    <div style="font-weight: bold;" data-key="appName">排队叫号助手</div>
-    <button class="lang-btn" onclick="toggleLang()">English</button>
+<div class="top-nav">
+    <div class="school-badge">🏫 <span data-key="school">平和学校</span></div>
+    <button class="lang-switcher" onclick="toggleLang()">English</button>
 </div>
 
-<div class="main-info">
-    <h1 style="margin:0; font-size:22px;" data-key="schoolName">平和学校食堂排队</h1>
-    <div style="color:var(--green); font-size:14px; margin-top:5px;">● <span data-key="statusOpen">取号开启中</span></div>
-</div>
-
-<div class="icon-nav">
-    <div class="nav-item" onclick="openModal('callModal')">
-        <div class="nav-icon" style="background: var(--red);">🔊</div><span class="nav-text" data-key="navCall">开始叫号</span>
-    </div>
-    <div class="nav-item" onclick="openModal('resetModal')">
-        <div class="nav-icon" style="background: var(--orange);">🔄</div><span class="nav-text" data-key="navReset">号码归零</span>
-    </div>
-    <div class="nav-item" onclick="openModal('qrModal')">
-        <div class="nav-icon" style="background: #333;">🔳</div><span class="nav-text" data-key="navQR">排队码</span>
-    </div>
-    <div class="nav-item" onclick="openModal('screenModal')">
-        <div class="nav-icon" style="background: var(--green);">🖥️</div><span class="nav-text" data-key="navScreen">大屏地址</span>
+<div class="hero-card">
+    <div class="id-label">ID: 106409</div>
+    <h2 style="margin: 5px 0;" data-key="title">食堂叫号助手</h2>
+    <div style="font-size: 13px; color: var(--green);"><span class="status-dot"></span><span data-key="status">取号开启中</span></div>
+    
+    <div class="number-display">
+        <div class="num-label" data-key="serving">正在呼叫 Serving</div>
+        <div class="num-value" id="currentNum">000</div>
+        <div id="myTicketInfo" style="display:none; border-top:1px dashed #eee; padding-top:15px; margin-top:15px;">
+            <div class="num-label" data-key="mine">我的号码 My Number</div>
+            <div style="font-size:32px; font-weight:800; color:var(--orange);" id="myNumDisplay">---</div>
+            <div style="font-size:12px; color:var(--red); font-weight:600;" id="waitInfo"></div>
+        </div>
     </div>
 </div>
 
-<div id="myTicketCard" class="card" style="display:none;">
-    <div style="color:var(--blue); font-weight:bold;" data-key="myNumberTitle">我的号码</div>
-    <div class="big-num" id="myNumDisplay">000</div>
-    <p id="waitText" data-key="waiting">正在获取排队信息...</p>
-    <button class="btn" style="background:#f2f2f7; color:#666;" onclick="cancelTicket()" data-key="cancelBtn">取消排队</button>
+<div class="tool-grid">
+    <div class="tool-item" onclick="openModal('qrModal')"><div class="tool-icon">🔳</div><div class="tool-label" data-key="tool1">排队码</div></div>
+    <div class="tool-item" onclick="openModal('resetModal')"><div class="tool-icon">🔄</div><div class="tool-label" data-key="tool2">归零</div></div>
+    <div class="tool-item" onclick="openModal('msgModal')"><div class="tool-icon">💬</div><div class="tool-label" data-key="tool3">公告</div></div>
+    <div class="tool-item" onclick="openModal('setModal')"><div class="tool-icon">⚙️</div><div class="tool-label" data-key="tool4">设置</div></div>
 </div>
 
-<div class="card" id="takeTicketArea">
-    <button class="btn btn-blue" onclick="takeTicket()" data-key="takeBtn">立即领取排队号</button>
+<div class="notice-box">
+    <b>Announcement:</b> <span data-key="notice">请在叫号后及时前往取餐，过号请重新取号。Please pick up your meal on time.</span>
 </div>
 
-<div class="notice">
-    <strong>Notice:</strong> <span data-key="noticeContent">请留意语音叫号，过号需重新排队。</span>
+<div class="bottom-actions">
+    <button class="btn btn-take" onclick="takeTicket()">
+        <div data-key="btnTake">立即取号</div>
+        <span>Get Ticket</span>
+    </button>
+    <button class="btn btn-call" onclick="callNext()">
+        <div data-key="btnCall">开始叫号</div>
+        <span>Call Next</span>
+    </button>
 </div>
 
-<div id="callModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeModal('callModal')">&times;</span>
-        <h3 data-key="callTitle">语音叫号控制</h3>
-        <p><span data-key="nowCalling">当前处理</span>: <b id="nowCall" style="color:var(--red)">N/A</b></p>
-        <button class="btn btn-blue" onclick="doCallNext()" data-key="nextBtn">🔊 呼叫下一位</button>
-    </div>
-</div>
-
-<div id="resetModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeModal('resetModal')">&times;</span>
-        <h3 data-key="resetTitle">重置数据</h3>
-        <p data-key="resetWarning">确定要清空所有记录吗？</p>
-        <button class="btn btn-red" onclick="doReset()" data-key="confirmReset">确定归零</button>
-    </div>
-</div>
-
-<div id="qrModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeModal('qrModal')">&times;</span>
-        <h3 data-key="navQR">排队码</h3>
-        <div style="background:#eee; height:150px; margin:20px 0; display:flex; align-items:center; justify-content:center; color:#999;">QR CODE</div>
-        <p data-key="qrDesc">请同学扫码取号</p>
-    </div>
-</div>
-
-<div id="screenModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeModal('screenModal')">&times;</span>
-        <h3 data-key="navScreen">大屏地址</h3>
-        <p style="font-size:12px; background:#f7f7f7; padding:10px; word-break:break-all;">https://momomomomomomo9.github.io/canteen-queue/</p>
-    </div>
-</div>
+<div id="qrModal" class="modal"><div class="modal-content"><h3>QR Code</h3><div style="background:#f2f2f7; height:150px; display:flex; align-items:center; justify-content:center; border-radius:12px; margin:15px 0;">[ 二维码 ]</div><div class="modal-close" onclick="closeModal('qrModal')">Close</div></div></div>
+<div id="resetModal" class="modal"><div class="modal-content"><h3>Reset</h3><p>确定要全部清空归零吗？<br>Confirm reset all data?</p><button class="btn btn-take" style="background:var(--red)" onclick="location.reload()">Confirm</button><div class="modal-close" onclick="closeModal('resetModal')">Cancel</div></div></div>
+<div id="msgModal" class="modal"><div class="modal-content"><h3>Notice</h3><p data-key="notice">请保持排队秩序</p><div class="modal-close" onclick="closeModal('msgModal')">OK</div></div></div>
+<div id="setModal" class="modal"><div class="modal-content"><h3>Settings</h3><p>Version 2.0.1 (Stable)</p><div class="modal-close" onclick="closeModal('setModal')">Close</div></div></div>
 
 <script>
-    // 语言字典
-    const langData = {
+    const lang = {
         'zh': {
-            'appName': '排队叫号助手', 'schoolName': '平和学校食堂排队', 'statusOpen': '取号开启中',
-            'navCall': '开始叫号', 'navReset': '号码归零', 'navQR': '排队码', 'navScreen': '大屏地址',
-            'takeBtn': '立即领取排队号', 'myNumberTitle': '我的号码', 'waiting': '前面还有 {n} 人',
-            'cancelBtn': '取消排队', 'callTitle': '语音叫号控制', 'nowCalling': '当前处理',
-            'nextBtn': '呼叫下一位', 'resetTitle': '重置数据', 'resetWarning': '确定要清空记录吗？',
-            'confirmReset': '确定归零', 'qrDesc': '让同学扫码进入', 'noticeContent': '请留意语音叫号，过号需重新排队。'
+            'school': '平和学校', 'title': '食堂叫号助手', 'status': '取号开启中', 'serving': '正在呼叫',
+            'mine': '我的号码', 'tool1': '排队码', 'tool2': '归零', 'tool3': '公告', 'tool4': '设置',
+            'btnTake': '立即取号', 'btnCall': '开始叫号', 'notice': '请在叫号后及时前往取餐，过号请重新取号。',
+            'wait': '前面还有 {n} 人'
         },
         'en': {
-            'appName': 'Queue Helper', 'schoolName': 'Pinghe Canteen Queue', 'statusOpen': 'Queueing Open',
-            'navCall': 'Call Next', 'navReset': 'Reset All', 'navQR': 'QR Code', 'navScreen': 'Display',
-            'takeBtn': 'Get Your Number', 'myNumberTitle': 'Your Number', 'waiting': '{n} people ahead',
-            'cancelBtn': 'Cancel', 'callTitle': 'Voice Control', 'nowCalling': 'Now Serving',
-            'nextBtn': 'Call Next Person', 'resetTitle': 'Reset Data', 'resetWarning': 'Clear all records?',
-            'confirmReset': 'Reset Now', 'qrDesc': 'Scan to Join Queue', 'noticeContent': 'Please listen for your number.'
+            'school': 'Pinghe School', 'title': 'Queue Assistant', 'status': 'System Online', 'serving': 'Now Serving',
+            'mine': 'My Number', 'tool1': 'QR Code', 'tool2': 'Reset', 'tool3': 'Notice', 'tool4': 'Setup',
+            'btnTake': 'Get Ticket', 'btnCall': 'Call Next', 'notice': 'Please collect your food promptly when called.',
+            'wait': '{n} people ahead'
         }
     };
 
-    let currentLang = 'zh';
-    let queue = []; let current = 0; let myNum = null;
+    let curLang = 'zh';
+    let queue = []; let servingNum = 0; let myTicket = null;
 
     function toggleLang() {
-        currentLang = currentLang === 'zh' ? 'en' : 'zh';
-        document.querySelector('.lang-btn').innerText = currentLang === 'zh' ? 'English' : '中文';
-        updateLangDisplay();
-    }
-
-    function updateLangDisplay() {
-        document.querySelectorAll('[data-key]').forEach(el => {
-            const key = el.getAttribute('data-key');
-            let text = langData[currentLang][key];
-            if (key === 'waiting' && myNum) {
-                let pos = queue.indexOf(myNum);
-                text = text.replace('{n}', pos >= 0 ? pos : 0);
-            }
-            el.innerText = text;
-        });
+        curLang = curLang === 'zh' ? 'en' : 'zh';
+        document.querySelector('.lang-switcher').innerText = curLang === 'zh' ? 'English' : '中文';
+        updateUI();
     }
 
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
+    function updateUI() {
+        document.querySelectorAll('[data-key]').forEach(el => {
+            const key = el.getAttribute('data-key');
+            el.innerText = lang[curLang][key];
+        });
+        document.getElementById('currentNum').innerText = servingNum.toString().padStart(3, '0');
+        if(myTicket) {
+            document.getElementById('myTicketInfo').style.display = 'block';
+            document.getElementById('myNumDisplay').innerText = myTicket.toString().padStart(3, '0');
+            let ahead = queue.indexOf(myTicket);
+            document.getElementById('waitInfo').innerText = ahead >= 0 ? lang[curLang]['wait'].replace('{n}', ahead) : "到您了！It's your turn!";
+        }
+    }
+
     function takeTicket() {
-        let n = (queue.length > 0 ? queue[queue.length-1] : Math.max(current, 0)) + 1;
-        myNum = n; queue.push(n);
-        document.getElementById('myTicketCard').style.display = 'block';
-        document.getElementById('takeTicketArea').style.display = 'none';
-        document.getElementById('myNumDisplay').innerText = n.toString().padStart(3, '0');
-        updateLangDisplay();
+        let next = (queue.length > 0 ? queue[queue.length-1] : Math.max(servingNum, 0)) + 1;
+        myTicket = next; queue.push(next); updateUI();
     }
 
-    function doCallNext() {
+    function callNext() {
         if(queue.length > 0) {
-            current = queue.shift();
-            document.getElementById('nowCall').innerText = current.toString().padStart(3, '0');
-            const voiceText = currentLang === 'zh' ? `请${current}号取餐` : `Number ${current}, please pick up your meal`;
-            const msg = new SpeechSynthesisUtterance(voiceText);
-            msg.lang = currentLang === 'zh' ? 'zh-CN' : 'en-US';
+            servingNum = queue.shift();
+            const voice = curLang === 'zh' ? `请${servingNum}号取餐` : `Number ${servingNum}, please.`;
+            const msg = new SpeechSynthesisUtterance(voice);
+            msg.lang = curLang === 'zh' ? 'zh-CN' : 'en-US';
             window.speechSynthesis.speak(msg);
-            updateLangDisplay();
-        } else { alert(currentLang === 'zh' ? "没人排队" : "No one in queue"); }
+            updateUI();
+        } else { alert(curLang === 'zh' ? "没有人排队" : "Queue is empty"); }
     }
 
-    function doReset() { queue = []; current = 0; location.reload(); }
-    function cancelTicket() { queue = queue.filter(x => x !== myNum); myNum = null; location.reload(); }
-
-    updateLangDisplay();
+    updateUI();
 </script>
+</body>
+</html>
 
 </body>
 </html>
