@@ -3,202 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>平和学校食堂排队助手</title>
+    <title>排队叫号助手 - 平和学校</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
-        :root { --blue: #007aff; --green: #34c759; --red: #ff3b30; --bg: #f2f2f7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
+        :root { --primary: #007aff; --bg: #f5f7fa; --gray: #909399; --success: #67c23a; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; }
         
-        /* 顶部 */
-        .header { background: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
-        .school-name { font-weight: 800; font-size: 18px; }
-
-        .container { padding: 15px; }
-
-        /* 模式选择器 */
-        .mode-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .mode-btn { background: #fff; border: 2px solid transparent; padding: 12px; border-radius: 12px; text-align: center; font-weight: bold; cursor: pointer; transition: 0.3s; color: #666; }
-        .mode-btn.active { border-color: var(--blue); color: var(--blue); background: #eef6ff; }
-
-        /* 号码显示大卡片 */
-        .card { background: #fff; border-radius: 20px; padding: 25px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .serving-label { color: var(--green); font-weight: bold; font-size: 14px; margin-bottom: 5px; }
-        .serving-num { font-size: 80px; font-weight: 900; color: var(--green); line-height: 1; margin: 15px 0; }
+        /* 顶部导航样式 */
+        .nav-header { width: 100%; background: #fff; padding: 15px 0; text-align: center; font-weight: bold; font-size: 18px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
         
-        /* 学生号码信息 */
-        .my-ticket { background: var(--blue); color: #fff; border-radius: 20px; padding: 20px; margin-bottom: 15px; display: none; }
-        .my-num { font-size: 50px; font-weight: 900; }
+        /* 容器 */
+        .container { width: 92%; max-width: 500px; margin-top: 15px; }
 
-        /* 公告 */
-        .notice-box { background: #fff; border-left: 4px solid var(--blue); padding: 15px; border-radius: 8px; font-size: 13px; line-height: 1.6; text-align: left; color: #444; }
+        /* 模式选择按钮 */
+        .tab-box { display: flex; background: #fff; border-radius: 12px; padding: 5px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .tab-item { flex: 1; text-align: center; padding: 10px; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.3s; color: var(--gray); }
+        .tab-item.active { background: var(--primary); color: #fff; }
 
-        /* 底部操作区 */
-        .action-area { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding: 15px 20px 30px; border-top: 1px solid #eee; }
-        .btn { width: 100%; border: none; border-radius: 16px; padding: 18px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-take { background: var(--blue); color: #fff; }
-        .btn-call { background: var(--green); color: #fff; display: none; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        .btn:active { transform: scale(0.98); opacity: 0.9; }
+        /* 大卡片样式 (模拟截图) */
+        .card { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 15px; position: relative; overflow: hidden; }
+        .card-title { font-size: 14px; color: var(--gray); margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
+        
+        /* 号码显示 */
+        .num-box { text-align: center; padding: 20px 0; }
+        .num-label { font-size: 20px; color: #333; font-weight: bold; }
+        .num-value { font-size: 64px; font-weight: 800; color: var(--primary); margin: 10px 0; }
+        
+        /* 信息网格 */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .info-item { background: #fdfdfd; border: 1px solid #eef0f2; border-radius: 8px; padding: 10px; display: flex; align-items: center; }
+        .info-tag { font-size: 12px; color: #fff; background: var(--primary); padding: 2px 6px; border-radius: 4px; margin-right: 8px; white-space: nowrap; }
+        .info-text { font-size: 13px; color: #333; font-weight: bold; overflow: hidden; text-overflow: ellipsis; }
 
-        /* 动画 */
-        .fade { animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* 按钮样式 */
+        .btn { width: 100%; padding: 15px; border-radius: 10px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-blue { background: var(--primary); color: #fff; box-shadow: 0 4px 10px rgba(0,122,255,0.2); }
+        .btn-green { background: var(--success); color: #fff; }
+        .btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
+        .btn:disabled { background: #dcdfe6; color: #fff; cursor: not-allowed; box-shadow: none; }
+
+        /* 公告栏 */
+        .notice-card { background: #eef6ff; border-radius: 12px; padding: 15px; margin-top: 20px; }
+        .notice-title { color: var(--primary); font-weight: bold; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; }
+        .notice-body { font-size: 13px; color: #555; line-height: 1.6; }
+
+        /* 隐藏管理区 */
+        #adminView { display: none; }
+        .admin-stat { display: flex; justify-content: space-around; background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div class="school-name">🏫 平和学校食堂</div>
-    <div id="status" style="font-size:12px; color:var(--red);">● 连接中</div>
-</div>
+<div class="nav-header">排队叫号助手</div>
 
 <div class="container">
-    <div class="mode-selector">
-        <div id="studentTab" class="mode-btn active" onclick="switchMode('student')">🙋‍♂️ 我是学生</div>
-        <div id="adminTab" class="mode-btn" onclick="switchMode('admin')">👔 我是管理</div>
+    <div class="tab-box">
+        <div id="tabStudent" class="tab-item active" onclick="switchView('student')">学生取号</div>
+        <div id="tabAdmin" class="tab-item" onclick="switchView('admin')">队列管理</div>
     </div>
 
-    <div class="card">
-        <div class="serving-label">正在呼叫 NOW SERVING</div>
-        <div class="serving-num" id="servingDisplay">000</div>
-        <div id="totalInfo" style="font-size:12px; color:#999;">总排队人数: 0</div>
+    <div id="studentView" class="fade">
+        <div class="card">
+            <div class="card-title">平和学校吃饭排队</div>
+            <div class="num-box">
+                <div class="num-label">我的号码：<span id="myNum">---</span></div>
+                <div class="num-value" id="dispNum">000</div>
+                <div style="font-size:14px; color:var(--gray)">取号时间：<span id="takeTime">未取号</span></div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item"><span class="info-tag">当前状态</span><span class="info-text" id="statusTxt">未取号</span></div>
+                <div class="info-item"><span class="info-tag">当前叫号</span><span class="info-text" id="callTxt">无</span></div>
+            </div>
+
+            <div style="text-align:center; margin-top:15px; font-size:14px; color:#333;">
+                您前面还有未结束：<span id="waitCount" style="color:var(--red); font-weight:bold;">0</span> 人
+            </div>
+
+            <button class="btn btn-blue" id="takeBtn" onclick="handleTake()">立即取号</button>
+            <div id="limitInfo" style="text-align:center; font-size:12px; color:var(--gray); margin-top:8px;">今日剩余取号机会：3 次</div>
+        </div>
     </div>
 
-    <div id="myTicketArea" class="my-ticket fade">
-        <div style="font-size:14px; opacity:0.9;">我的号码 MY NUMBER</div>
-        <div class="my-num" id="myNumDisplay">000</div>
-        <div id="waitStatus" style="font-size:14px; font-weight:bold; margin-top:5px;"></div>
+    <div id="adminView" class="fade">
+        <div class="card">
+            <div class="card-title">队列管理员 - 叫号控制</div>
+            <div class="admin-stat">
+                <div><small>今日已发号</small><br><strong id="statTotal" style="font-size:20px;">0</strong></div>
+                <div style="border-left:1px solid #ddd; padding-left:20px;"><small>当前处理中</small><br><strong id="statServing" style="font-size:20px; color:var(--success);">0</strong></div>
+            </div>
+            
+            <button class="btn btn-green" onclick="handleCall()">🔊 开始叫号 (下一位)</button>
+            <button class="btn btn-outline" onclick="handleReset()">清空队列重置</button>
+            <p style="font-size:12px; color:var(--gray); text-align:center;">叫号时系统将自动播放语音</p>
+        </div>
     </div>
 
-    <div class="notice-box">
-        <b style="color:var(--blue)">📢 公告提示：</b><br>
-        <span id="noticeContent">厉行节约，光盘行动。每位同学每天限领 3 次号，过号请重新排队。</span>
+    <div class="notice-card">
+        <div class="notice-title">📢 平和食堂公告</div>
+        <div class="notice-body">
+            1. <b>厉行节约：</b> 请按需取餐，坚持光盘行动。<br>
+            2. <b>取号规则：</b> 每人每天限取 3 次号，严禁代领。<br>
+            3. <b>文明排队：</b> 听到叫号后请在 2 分钟内到达柜台，祝您用餐愉快！
+        </div>
     </div>
-</div>
-
-<div class="action-area">
-    <button id="takeBtn" class="btn btn-take" onclick="handleTake()">立即取号 Get Ticket</button>
-    <button id="callBtn" class="btn btn-call fade" onclick="handleCall()">🔊 语音叫号 Call Next</button>
 </div>
 
 <script>
-    // --- 实时数据配置 ---
-    const TOPIC = "pinghe_canteen_unified_2024"; 
+    const TOPIC = "pinghe_school_canteen_realtime_01";
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
     
-    let serving = 0;
-    let total = 0;
-    let myNumber = null;
-    let isAdminVerified = false;
-
-    // --- 取号限制 ---
+    let serving = 0, total = 0, myNumber = null;
     let today = new Date().toDateString();
     let count = localStorage.getItem('takeCount_' + today) || 0;
 
-    client.on('connect', () => {
-        document.getElementById('status').innerText = "● 实时同步中";
-        document.getElementById('status').style.color = "var(--green)";
-        client.subscribe(TOPIC);
+    client.on('connect', () => { client.subscribe(TOPIC); });
+    client.on('message', (t, m) => {
+        const data = JSON.parse(m.toString());
+        serving = data.serving; total = data.total;
+        updateUI();
     });
 
-    client.on('message', (topic, msg) => {
-        const data = JSON.parse(msg.toString());
-        if(data.type === 'sync') {
-            serving = data.serving;
-            total = data.total;
-            document.getElementById('servingDisplay').innerText = serving.toString().padStart(3, '0');
-            document.getElementById('totalInfo').innerText = "总排队人数: " + total;
-            updateWaitStatus();
-        }
-    });
-
-    // --- 切换模式 ---
-    function switchMode(mode) {
-        document.getElementById('studentTab').classList.remove('active');
-        document.getElementById('adminTab').classList.remove('active');
-        
-        if(mode === 'student') {
-            document.getElementById('studentTab').classList.add('active');
-            document.getElementById('takeBtn').style.display = 'block';
-            document.getElementById('callBtn').style.display = 'none';
-            document.getElementById('noticeContent').innerText = "厉行节约，光盘行动。每位同学每天限领 3 次号，过号请重新排队。";
+    function switchView(view) {
+        if(view === 'admin') {
+            const pw = prompt("请输入管理员密码:");
+            if(pw !== "123456") return alert("密码错误");
+            document.getElementById('adminView').style.display = 'block';
+            document.getElementById('studentView').style.display = 'none';
+            document.getElementById('tabAdmin').classList.add('active');
+            document.getElementById('tabStudent').classList.remove('active');
         } else {
-            // 进入管理模式需要验证
-            if(!isAdminVerified) {
-                const pw = prompt("请输入管理员密码进入叫号系统:");
-                if(pw === "123456") {
-                    isAdminVerified = true;
-                } else {
-                    alert("密码错误，无法开启叫号模式");
-                    switchMode('student');
-                    return;
-                }
-            }
-            document.getElementById('adminTab').classList.add('active');
-            document.getElementById('takeBtn').style.display = 'none';
-            document.getElementById('callBtn').style.display = 'block';
-            document.getElementById('noticeContent').innerText = "管理模式已开启。请按顺序叫号，系统将自动进行语音播报。";
+            document.getElementById('adminView').style.display = 'none';
+            document.getElementById('studentView').style.display = 'block';
+            document.getElementById('tabStudent').classList.add('active');
+            document.getElementById('tabAdmin').classList.remove('active');
         }
     }
 
-    // --- 学生取号 ---
     function handleTake() {
-        if(count >= 3) return alert("今日取号机会已用完");
-        
-        total++;
-        myNumber = total;
-        count++;
+        if(count >= 3) return alert("今日取号次数已达上限");
+        total++; myNumber = total; count++;
         localStorage.setItem('takeCount_' + today, count);
-        
-        document.getElementById('myTicketArea').style.display = 'block';
-        document.getElementById('myNumDisplay').innerText = myNumber.toString().padStart(3, '0');
-        document.getElementById('takeBtn').innerText = `已领取 (${count}/3)`;
-        if(count >= 3) document.getElementById('takeBtn').disabled = true;
-
+        document.getElementById('takeTime').innerText = new Date().toLocaleTimeString();
         broadcast();
     }
 
-    // --- 管理叫号 ---
     function handleCall() {
         if(serving < total) {
             serving++;
-            const speech = new SpeechSynthesisUtterance(`请${serving}号同学到柜台取餐`);
-            window.speechSynthesis.speak(speech);
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(`请${serving}号同学取餐`));
             broadcast();
-        } else {
-            alert("当前没有人在排队");
-        }
+        } else { alert("暂时没有人排队"); }
     }
 
-    // --- 数据广播 ---
+    function handleReset() { if(confirm("确定清空今日数据吗？")) { serving = 0; total = 0; broadcast(); } }
+
     function broadcast() {
-        client.publish(TOPIC, JSON.stringify({
-            type: 'sync',
-            serving: serving,
-            total: total
-        }));
+        client.publish(TOPIC, JSON.stringify({serving, total}));
     }
 
-    function updateWaitStatus() {
-        if(!myNumber) return;
-        const wait = myNumber - serving;
-        const el = document.getElementById('waitStatus');
-        if(wait > 0) {
-            el.innerText = `等待中：前面还有 ${wait} 人`;
-            el.style.color = "rgba(255,255,255,0.8)";
-        } else {
-            el.innerText = "到您了！请立即取餐";
-            el.style.color = "#ffeb3b";
+    function updateUI() {
+        document.getElementById('servingDisplay')?.innerText; // 这里的逻辑由下面统筹
+        document.getElementById('callTxt').innerText = serving > 0 ? serving.toString().padStart(3,'0') + " 号" : "无";
+        document.getElementById('statTotal').innerText = total;
+        document.getElementById('statServing').innerText = serving;
+        
+        if(myNumber) {
+            document.getElementById('dispNum').innerText = myNumber.toString().padStart(3,'0');
+            const wait = myNumber - serving;
+            document.getElementById('waitCount').innerText = wait > 0 ? wait : 0;
+            document.getElementById('statusTxt').innerText = wait > 0 ? "等待叫号" : "请取餐";
+            document.getElementById('statusTxt').style.color = wait > 0 ? "var(--primary)" : "var(--success)";
         }
-    }
-
-    // 初始化按钮状态
-    if(count >= 3) {
-        document.getElementById('takeBtn').disabled = true;
-        document.getElementById('takeBtn').innerText = "今日次数已达上限";
+        
+        document.getElementById('limitInfo').innerText = `今日剩余取号机会：${3 - count} 次`;
+        document.getElementById('takeBtn').disabled = count >= 3;
     }
 </script>
-
 </body>
 </html>
 </script>
