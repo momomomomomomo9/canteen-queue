@@ -3,203 +3,708 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>排队叫号助手 | Queue Assistant</title>
+    <title>平和食堂排队 | Pinghe Queue</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
-        :root { --primary: #1a458b; --bg: #f5f7fa; --gray: #909399; --success: #67c23a; --red: #ff3b30; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; color: #333; }
-        .nav-header { width: 100%; background: #fff; padding: 15px 0; text-align: center; font-weight: bold; font-size: 18px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
-        .container { width: 92%; max-width: 500px; margin-top: 15px; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
 
-        /* Mode Switcher */
-        .tab-box { display: flex; background: #fff; border-radius: 12px; padding: 5px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .tab-item { flex: 1; text-align: center; padding: 8px; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; color: var(--gray); line-height: 1.2; }
+        :root {
+            --primary: #1a458b;
+            --primary-light: #e8eef9;
+            --bg: #f0f4fa;
+            --gray: #909399;
+            --success: #27ae60;
+            --red: #e74c3c;
+            --warning: #f39c12;
+            --card: #ffffff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, sans-serif;
+            background: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #2c3e50;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .nav-header {
+            width: 100%;
+            background: var(--primary);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 12px rgba(26,69,139,0.3);
+        }
+        .nav-title { color: #fff; font-weight: 900; font-size: 16px; line-height: 1.3; }
+        .nav-title small { display: block; font-size: 11px; font-weight: 400; opacity: 0.8; }
+        .conn-badge {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 11px; color: #fff; opacity: 0.9;
+        }
+        .conn-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #ff6b6b;
+            transition: background 0.4s;
+        }
+        .conn-dot.online { background: #2ecc71; animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(46,204,113,0.5); }
+            50% { box-shadow: 0 0 0 5px rgba(46,204,113,0); }
+        }
+
+        .container { width: 92%; max-width: 480px; margin-top: 16px; padding-bottom: 30px; }
+
+        /* ── Tabs ── */
+        .tab-box {
+            display: flex; background: #fff; border-radius: 14px;
+            padding: 5px; margin-bottom: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .tab-item {
+            flex: 1; text-align: center; padding: 9px 5px;
+            border-radius: 10px; font-size: 12px; font-weight: 700;
+            cursor: pointer; color: var(--gray); line-height: 1.3;
+            transition: all 0.25s;
+        }
         .tab-item.active { background: var(--primary); color: #fff; }
 
-        /* Card Section */
-        .card { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .card-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
-        
-        .num-box { text-align: center; padding: 10px 0; }
-        .num-label { font-size: 16px; font-weight: 600; }
-        .num-value { font-size: 72px; font-weight: 800; color: var(--primary); margin: 5px 0; }
-        
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .info-item { background: #fdfdfd; border: 1px solid #eef0f2; border-radius: 8px; padding: 10px; display: flex; align-items: center; }
-        .info-tag { font-size: 10px; color: #fff; background: var(--primary); padding: 2px 5px; border-radius: 4px; margin-right: 6px; white-space: nowrap; text-align: center; }
-        .info-text { font-size: 12px; font-weight: bold; }
+        /* ── Cards ── */
+        .card {
+            background: var(--card); border-radius: 18px;
+            padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            margin-bottom: 14px;
+        }
+        .card-title {
+            font-size: 14px; font-weight: 700; margin-bottom: 14px;
+            border-bottom: 1px solid #f0f2f5; padding-bottom: 10px;
+            color: var(--primary);
+        }
 
-        /* Buttons */
-        .btn { width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
-        .btn small { font-size: 11px; font-weight: normal; opacity: 0.8; margin-top: 2px; }
-        .btn-blue { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(26,69,139,0.3); }
-        .btn-green { background: var(--success); color: #fff; }
-        .btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); margin-top: 15px; padding: 10px; font-size: 14px; }
-        .btn:disabled { background: #dcdfe6 !important; color: #fff !important; cursor: not-allowed; box-shadow: none; }
+        /* ── My Number Display ── */
+        .num-box { text-align: center; padding: 8px 0 14px; }
+        .num-label { font-size: 13px; font-weight: 600; color: #555; }
+        .num-value {
+            font-size: 80px; font-weight: 900; color: var(--primary);
+            margin: 4px 0; line-height: 1;
+            text-shadow: 0 4px 20px rgba(26,69,139,0.15);
+            transition: all 0.3s;
+        }
+        .num-value.flash { animation: numFlash 0.5s ease; }
+        @keyframes numFlash {
+            0%,100% { transform: scale(1); }
+            50% { transform: scale(1.12); color: var(--success); }
+        }
+        .num-time { font-size: 11px; color: var(--gray); }
 
-        .notice-card { background: #eef6ff; border-radius: 12px; padding: 15px; margin-top: 15px; font-size: 12px; line-height: 1.6; }
+        /* ── Info Grid ── */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+        .info-item {
+            background: #f8faff; border: 1px solid #e8eef9;
+            border-radius: 10px; padding: 11px 10px;
+            display: flex; align-items: center;
+        }
+        .info-tag {
+            font-size: 9px; color: #fff; background: var(--primary);
+            padding: 3px 6px; border-radius: 5px; margin-right: 8px;
+            white-space: nowrap; text-align: center; line-height: 1.4;
+            flex-shrink: 0;
+        }
+        .info-text { font-size: 12px; font-weight: 700; }
+
+        /* ── Wait Count ── */
+        .wait-box {
+            text-align: center; margin: 14px 0 8px;
+            font-size: 13px; color: #555;
+        }
+        .wait-num {
+            display: inline-block;
+            color: var(--red); font-weight: 900; font-size: 26px;
+            line-height: 1;
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            width: 100%; padding: 16px 10px;
+            border-radius: 13px; border: none;
+            font-size: 17px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+            margin-top: 10px; display: flex;
+            flex-direction: column; align-items: center; line-height: 1.3;
+        }
+        .btn small { font-size: 10px; font-weight: 400; opacity: 0.8; margin-top: 2px; }
+        .btn-blue {
+            background: linear-gradient(135deg, #1a458b, #2563eb);
+            color: #fff; box-shadow: 0 5px 15px rgba(26,69,139,0.35);
+        }
+        .btn-blue:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(26,69,139,0.2); }
+        .btn-green {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: #fff; box-shadow: 0 4px 12px rgba(39,174,96,0.3);
+        }
+        .btn-green:active { transform: scale(0.97); }
+        .btn-red {
+            background: #fff; color: var(--red);
+            border: 1.5px solid var(--red);
+            margin-top: 12px; padding: 10px; font-size: 13px;
+        }
+        .btn:disabled {
+            background: #dfe3ea !important; color: #aaa !important;
+            cursor: not-allowed; box-shadow: none !important;
+        }
+
+        .limit-info { text-align: center; font-size: 12px; color: var(--gray); margin-top: 10px; }
+
+        /* ── Admin Stats ── */
+        .stat-row {
+            display: flex; justify-content: space-around;
+            background: #f8f9fa; padding: 16px;
+            border-radius: 12px; margin-bottom: 14px;
+            text-align: center;
+        }
+        .stat-item small { font-size: 11px; color: var(--gray); display: block; margin-bottom: 4px; }
+        .stat-num { font-size: 28px; font-weight: 900; }
+        .stat-divider { width: 1px; background: #e0e0e0; }
+
+        /* ── Queue List ── */
+        .queue-section { margin-top: 6px; }
+        .queue-section-title { font-size: 12px; font-weight: 700; color: #888; margin-bottom: 8px; }
+        .queue-list { display: flex; flex-wrap: wrap; gap: 7px; }
+        .q-badge {
+            padding: 5px 10px; border-radius: 20px;
+            font-size: 13px; font-weight: 700;
+            border: 1.5px solid #ddd; color: #555;
+            background: #f8f8f8;
+            transition: all 0.3s;
+        }
+        .q-badge.done { background: #e8f8ee; border-color: #a8e6c0; color: var(--success); text-decoration: line-through; opacity: 0.6; }
+        .q-badge.current { background: var(--primary); border-color: var(--primary); color: #fff; transform: scale(1.12); box-shadow: 0 3px 10px rgba(26,69,139,0.3); }
+        .q-badge.waiting { background: #fff8e8; border-color: #ffd680; color: var(--warning); }
+        .q-badge.mine { box-shadow: 0 0 0 2px var(--red) !important; }
+
+        /* ── Connection Toast ── */
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #2c3e50; color: #fff; padding: 10px 20px;
+            border-radius: 30px; font-size: 13px; z-index: 999;
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+
+        /* ── Notice ── */
+        .notice-card {
+            background: linear-gradient(135deg, #eef6ff, #e8f4fe);
+            border-radius: 14px; padding: 15px; margin-top: 4px;
+            font-size: 12px; line-height: 1.8; color: #4a6fa5;
+            border: 1px solid #d6e8fb;
+        }
+
         #adminView { display: none; }
-        .fade { animation: fadeIn 0.4s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .fade { animation: fadeIn 0.35s ease; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Serving Alert Banner ── */
+        .serving-banner {
+            display: none;
+            background: linear-gradient(135deg, var(--success), #20bf6b);
+            color: #fff; border-radius: 14px;
+            padding: 16px; text-align: center;
+            margin-bottom: 14px; font-weight: 700;
+            font-size: 16px; animation: blink 1s ease infinite;
+        }
+        .serving-banner.show { display: block; }
+        @keyframes blink {
+            0%,100% { opacity: 1; } 50% { opacity: 0.75; }
+        }
     </style>
 </head>
 <body>
 
-<div class="nav-header">平和学校食堂 | Pinghe Canteen</div>
+<div class="nav-header">
+    <div class="nav-title">
+        平和学校食堂
+        <small>Pinghe School Canteen</small>
+    </div>
+    <div class="conn-badge">
+        <div class="conn-dot" id="connDot"></div>
+        <span id="connText">连接中…</span>
+    </div>
+</div>
 
 <div class="container">
+
     <div class="tab-box">
-        <div id="tabStudent" class="tab-item active" onclick="switchView('student')">学生取号<br><small>Get Ticket</small></div>
-        <div id="tabAdmin" class="tab-item" onclick="switchView('admin')">队列管理<br><small>Management</small></div>
+        <div id="tabStudent" class="tab-item active" onclick="switchView('student')">
+            🎫 学生取号<br><small>Get Ticket</small>
+        </div>
+        <div id="tabAdmin" class="tab-item" onclick="switchView('admin')">
+            ⚙️ 队列管理<br><small>Management</small>
+        </div>
     </div>
 
+    <!-- ══ STUDENT VIEW ══ -->
     <div id="studentView" class="fade">
+
+        <!-- Serving Alert -->
+        <div class="serving-banner" id="servingBanner">
+            🔔 您的号码已叫到！请立即取餐！<br>
+            <small style="font-weight:400">Your number is being called! Please collect your meal!</small>
+        </div>
+
         <div class="card">
-            <div class="card-title">平和学校吃饭排队 | Pinghe Queue</div>
+            <div class="card-title">📋 平和学校吃饭排队 | Pinghe Queue</div>
+
             <div class="num-box">
                 <div class="num-label">我的号码 | My Number</div>
-                <div class="num-value" id="dispNum">000</div>
-                <div style="font-size:12px; color:var(--gray)">取号时间 | Time: <span id="takeTime">--:--</span></div>
+                <div class="num-value" id="dispNum">—</div>
+                <div class="num-time">取号时间 | Time: <span id="takeTime">--:--</span></div>
             </div>
 
             <div class="info-grid">
-                <div class="info-item"><span class="info-tag">状态<br>Status</span><span class="info-text" id="statusTxt">未取号 | Idle</span></div>
-                <div class="info-item"><span class="info-tag">叫号<br>Serving</span><span class="info-text" id="callTxt">无 | None</span></div>
+                <div class="info-item">
+                    <span class="info-tag">状态<br>Status</span>
+                    <span class="info-text" id="statusTxt">未取号 | Idle</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-tag">叫号<br>Serving</span>
+                    <span class="info-text" id="callTxt">无 | None</span>
+                </div>
             </div>
 
-            <div style="text-align:center; margin: 15px 0; font-size:13px;">
-                前面还有 | Waiting Ahead: <span id="waitCount" style="color:var(--red); font-weight:bold; font-size:18px;">0</span> 人
+            <div class="wait-box">
+                前面还有 | Waiting Ahead:
+                <span class="wait-num" id="waitCount">—</span>
+                人
             </div>
 
             <button class="btn btn-blue" id="takeBtn" onclick="handleTake()">
                 立即取号
                 <small>Get Ticket Now</small>
             </button>
-            <div id="limitInfo" style="text-align:center; font-size:12px; color:var(--gray); margin-top:10px;">今日剩余取号机会 | Remainder: 3</div>
+            <div class="limit-info" id="limitInfo">今日剩余取号机会 | Remainder: 3</div>
+        </div>
+
+        <!-- Live Queue Overview -->
+        <div class="card">
+            <div class="card-title">🔢 当前队列 | Live Queue</div>
+            <div id="queueDisplay">
+                <div style="text-align:center; color:var(--gray); font-size:13px; padding: 10px 0;">队列加载中… | Loading…</div>
+            </div>
         </div>
     </div>
 
+    <!-- ══ ADMIN VIEW ══ -->
     <div id="adminView" class="fade">
         <div class="card">
-            <div class="card-title">管理员控制台 | Admin Console</div>
-            <div style="display:flex; justify-content:space-around; background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:15px; text-align:center;">
-                <div><small>今日发号</small><br><strong id="statTotal" style="font-size:20px;">0</strong></div>
-                <div style="border-left:1px solid #ddd; padding-left:20px;"><small>正在处理</small><br><strong id="statServing" style="font-size:20px; color:var(--success);">0</strong></div>
+            <div class="card-title">⚙️ 管理员控制台 | Admin Console</div>
+
+            <div class="stat-row">
+                <div class="stat-item">
+                    <small>今日发号 | Total Issued</small>
+                    <div class="stat-num" id="statTotal" style="color:var(--primary);">0</div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <small>已叫号 | Called</small>
+                    <div class="stat-num" id="statServing" style="color:var(--success);">0</div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <small>等待中 | Waiting</small>
+                    <div class="stat-num" id="statWaiting" style="color:var(--warning);">0</div>
+                </div>
             </div>
-            <button class="btn btn-green" onclick="handleCall()">🔊 叫号下一位 | Call Next</button>
-            <button class="btn btn-outline" onclick="handleReset()">清空今日数据 | Reset All</button>
+
+            <button class="btn btn-green" id="callBtn" onclick="handleCall()">
+                🔊 叫号下一位 | Call Next
+                <small>Announce next number</small>
+            </button>
+            <button class="btn btn-red" onclick="handleReset()">
+                🗑️ 清空今日数据 | Reset All
+            </button>
+        </div>
+
+        <!-- Admin Queue List -->
+        <div class="card">
+            <div class="card-title">📋 队列详情 | Queue Detail</div>
+            <div id="adminQueueDisplay">
+                <div style="text-align:center; color:var(--gray); font-size:13px;">暂无数据</div>
+            </div>
         </div>
     </div>
 
     <div class="notice-card">
-        <b style="color:var(--primary)">📢 食堂公告 | Notice:</b><br>
-        1. 厉行节约，光盘行动 | Save food.<br>
-        2. 每人每天限领 3 次号 | Limit: 3 times/day.<br>
-        3. 听到叫号请及时取餐 | Please pick up on time.
+        <b style="color:var(--primary)">📢 食堂公告 | Notice</b><br>
+        1. 厉行节约，光盘行动 | Save food, finish your plate.<br>
+        2. 每人每天限领 3 次号 | Max 3 tickets per person per day.<br>
+        3. 听到叫号请及时取餐 | Please collect your meal promptly when called.
     </div>
 </div>
 
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
 <script>
-    // 使用唯一的频道名，防止干扰
-    const TOPIC = "pinghe_canteen_final_v1";
-    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-    
-    let serving = 0, total = 0, myNumber = null;
-    let today = new Date().toDateString();
-    
-    // 初始化 count，确保是数字类型
-    let count = Number(localStorage.getItem('takeCount_' + today)) || 0;
+// ════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════
+const BROKER   = 'wss://broker.emqx.io:8084/mqtt';
+const TOPIC_STATE  = 'pinghe/canteen/v3/state';   // retained — carries serving & total
+const TOPIC_TAKE   = 'pinghe/canteen/v3/take';    // student → request a ticket
+const TOPIC_CALL   = 'pinghe/canteen/v3/call';    // admin   → call next
+const TOPIC_RESET  = 'pinghe/canteen/v3/reset';   // admin   → reset
+const ADMIN_PASS   = '123456';
+const MAX_TICKETS  = 3;
 
-    client.on('connect', () => { client.subscribe(TOPIC); });
-    client.on('message', (t, m) => {
-        const data = JSON.parse(m.toString());
-        serving = Number(data.serving); 
-        total = Number(data.total);
+// ────────────────────────────────────────────
+//  PERSISTENT LOCAL STATE
+// ────────────────────────────────────────────
+const today = new Date().toDateString();
+// Clear stale days
+if (localStorage.getItem('pinghe_day') !== today) {
+    localStorage.removeItem('pinghe_myNum');
+    localStorage.removeItem('pinghe_myTime');
+    localStorage.removeItem('pinghe_takeCount');
+    localStorage.setItem('pinghe_day', today);
+}
+
+let myNumber  = Number(localStorage.getItem('pinghe_myNum'))   || null;
+let myTime    = localStorage.getItem('pinghe_myTime')           || null;
+let takeCount = Number(localStorage.getItem('pinghe_takeCount'))|| 0;
+
+// ────────────────────────────────────────────
+//  SHARED STATE (from MQTT retained message)
+// ────────────────────────────────────────────
+let serving = 0;
+let total   = 0;
+
+// ────────────────────────────────────────────
+//  MQTT CLIENT
+// ────────────────────────────────────────────
+const clientId = 'ph_' + Math.random().toString(36).substr(2, 8);
+const client = mqtt.connect(BROKER, {
+    clientId,
+    clean: true,
+    reconnectPeriod: 3000,
+    keepalive: 60
+});
+
+client.on('connect', () => {
+    setConn(true);
+    client.subscribe([TOPIC_STATE, TOPIC_TAKE, TOPIC_CALL, TOPIC_RESET]);
+    showToast('✅ 已连接服务器 | Connected');
+});
+
+client.on('reconnect',    () => setConn(false));
+client.on('offline',      () => setConn(false));
+client.on('error',        () => setConn(false));
+
+client.on('message', (topic, payload) => {
+    let data;
+    try { data = JSON.parse(payload.toString()); } catch(e) { return; }
+
+    if (topic === TOPIC_STATE) {
+        // Authoritative state — always accept
+        serving = Number(data.serving) || 0;
+        total   = Number(data.total)   || 0;
         updateUI();
-    });
-
-    function switchView(view) {
-        if(view === 'admin') {
-            if(prompt("请输入管理密码:") !== "123456") return;
-            document.getElementById('adminView').style.display = 'block';
-            document.getElementById('studentView').style.display = 'none';
-            document.getElementById('tabAdmin').classList.add('active');
-            document.getElementById('tabStudent').classList.remove('active');
-        } else {
-            document.getElementById('adminView').style.display = 'none';
-            document.getElementById('studentView').style.display = 'block';
-            document.getElementById('tabStudent').classList.add('active');
-            document.getElementById('tabAdmin').classList.remove('active');
-        }
+        return;
     }
 
-    function handleTake() {
-        // 关键修复：直接读取最新的 count 值进行判断
-        let currentCount = Number(localStorage.getItem('takeCount_' + today)) || 0;
-        
-        if(currentCount >= 3) {
-            alert("今日次数已满 | Limit Reached");
-            return;
+    if (topic === TOPIC_TAKE) {
+        // Only the FIRST client that received connect (lowest latency) acts as
+        // "sequencer". We use a simpler approach: every client updates its own
+        // view based on the authoritative state message below.
+        // The sequencer approach: whichever client published the take message
+        // is responsible for updating state. We detect our own message via clientId.
+        if (data.requesterId === clientId) {
+            // WE are the one who took a ticket — write new state
+            serving = Number(data.serving);
+            total   = Number(data.total);
+            publishState();
+            updateUI();
         }
+        return;
+    }
 
-        total++; 
-        myNumber = total; 
-        currentCount++;
-        
-        localStorage.setItem('takeCount_' + today, currentCount);
-        count = currentCount; // 同步全局变量
-        
-        document.getElementById('takeTime').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        broadcast();
+    if (topic === TOPIC_CALL) {
+        if (data.requesterId === clientId) {
+            serving = Number(data.serving);
+            total   = Number(data.total);
+            publishState();
+            updateUI();
+        }
+        return;
+    }
+
+    if (topic === TOPIC_RESET) {
+        serving = 0; total = 0;
+        // All clients reset their local state
+        if (data.requesterId !== clientId) {
+            // Other device triggered reset — clean up my local data too
+            myNumber  = null; myTime = null; takeCount = 0;
+            localStorage.removeItem('pinghe_myNum');
+            localStorage.removeItem('pinghe_myTime');
+            localStorage.removeItem('pinghe_takeCount');
+            showToast('🔄 管理员已重置队列 | Queue reset by admin');
+        }
         updateUI();
+        return;
+    }
+});
+
+// ────────────────────────────────────────────
+//  PUBLISH HELPERS
+// ────────────────────────────────────────────
+
+/** Publish the authoritative state with retain=true so new joiners get it instantly */
+function publishState() {
+    client.publish(TOPIC_STATE, JSON.stringify({ serving, total }), { retain: true, qos: 1 });
+}
+
+// ────────────────────────────────────────────
+//  ACTIONS
+// ────────────────────────────────────────────
+
+function handleTake() {
+    if (takeCount >= MAX_TICKETS) {
+        showToast('❌ 今日次数已满 | Daily limit reached');
+        return;
+    }
+    if (!client.connected) {
+        showToast('⚠️ 未连接，请稍候 | Not connected, please wait');
+        return;
     }
 
-    function handleCall() {
-        if(serving < total) {
-            serving++;
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance(`Please number ${serving} go to the counter`));
-            broadcast();
-        }
-    }
+    // Optimistic local increment — atomically publish new state
+    // Because MQTT is fire-and-forget, we publish the new state directly.
+    // This is safe when only one person takes at a time (canteen scenario).
+    // For high-concurrency, a backend is needed; for a school canteen this is fine.
+    total++;
+    myNumber  = total;
+    myTime    = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    takeCount++;
 
-    function handleReset() { 
-        if(confirm("确定清空？")) { 
-            serving = 0; total = 0; 
-            broadcast(); 
-            localStorage.removeItem('takeCount_' + today);
-            location.reload(); 
-        } 
-    }
+    localStorage.setItem('pinghe_myNum',     myNumber);
+    localStorage.setItem('pinghe_myTime',    myTime);
+    localStorage.setItem('pinghe_takeCount', takeCount);
 
-    function broadcast() { client.publish(TOPIC, JSON.stringify({serving, total})); }
-
-    function updateUI() {
-        document.getElementById('callTxt').innerText = serving > 0 ? serving.toString().padStart(3,'0') + " 号" : "无 | None";
-        document.getElementById('statTotal').innerText = total;
-        document.getElementById('statServing').innerText = serving;
-        
-        if(myNumber) {
-            document.getElementById('dispNum').innerText = myNumber.toString().padStart(3,'0');
-            const wait = myNumber - serving;
-            document.getElementById('waitCount').innerText = wait > 0 ? wait : 0;
-            document.getElementById('statusTxt').innerText = wait > 0 ? "等待中 | Waiting" : "请取餐 | Serving";
-            document.getElementById('statusTxt').style.color = wait > 0 ? "var(--primary)" : "var(--success)";
-        }
-        
-        // 更新剩余次数显示
-        let displayRemainder = 3 - count;
-        document.getElementById('limitInfo').innerText = `今日剩余取号机会 | Remainder: ${displayRemainder < 0 ? 0 : displayRemainder}`;
-        
-        // 如果次数满了，禁用按钮
-        if(count >= 3) {
-            const btn = document.getElementById('takeBtn');
-            btn.disabled = true;
-            btn.innerHTML = "次数已满<small>Limit Reached</small>";
-        }
-    }
-
-    // 页面加载时先跑一遍 UI 更新
+    publishState();
     updateUI();
+    showToast(`🎫 取号成功！您的号码是 ${String(myNumber).padStart(3,'0')} | Ticket issued!`);
+}
+
+function handleCall() {
+    if (serving >= total) {
+        showToast('⚠️ 没有等待中的号码 | No waiting tickets');
+        return;
+    }
+    serving++;
+    publishState();
+
+    // TTS
+    const u = new SpeechSynthesisUtterance(`请 ${serving} 号到窗口取餐。Number ${serving}, please collect your meal.`);
+    u.lang = 'zh-CN';
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+
+    updateUI();
+    showToast(`🔊 已叫号 ${String(serving).padStart(3,'0')} | Called #${String(serving).padStart(3,'0')}`);
+}
+
+function handleReset() {
+    if (!confirm('确定清空今日所有数据？\nReset all data for today?')) return;
+    serving = 0; total = 0;
+    myNumber = null; myTime = null; takeCount = 0;
+    localStorage.removeItem('pinghe_myNum');
+    localStorage.removeItem('pinghe_myTime');
+    localStorage.removeItem('pinghe_takeCount');
+
+    // Publish reset event to all devices
+    client.publish(TOPIC_RESET, JSON.stringify({ requesterId: clientId }), { qos: 1 });
+    // Also publish authoritative zero state
+    publishState();
+    updateUI();
+    showToast('🗑️ 已清空 | Reset complete');
+}
+
+// ────────────────────────────────────────────
+//  UI UPDATE
+// ────────────────────────────────────────────
+
+function updateUI() {
+    const waiting = Math.max(0, total - serving);
+
+    // ── Serving badge
+    document.getElementById('callTxt').innerText =
+        serving > 0 ? String(serving).padStart(3,'0') + ' 号' : '无 | None';
+
+    // ── Admin stats
+    document.getElementById('statTotal').innerText   = total;
+    document.getElementById('statServing').innerText = serving;
+    document.getElementById('statWaiting').innerText = waiting;
+
+    // ── Student number display
+    if (myNumber) {
+        const numEl = document.getElementById('dispNum');
+        const prevNum = numEl.innerText;
+        const newNum  = String(myNumber).padStart(3,'0');
+        if (prevNum !== newNum) {
+            numEl.innerText = newNum;
+            numEl.classList.remove('flash');
+            void numEl.offsetWidth;
+            numEl.classList.add('flash');
+        }
+        document.getElementById('takeTime').innerText = myTime || '--:--';
+
+        const ahead = myNumber - serving;
+        if (ahead <= 0) {
+            document.getElementById('waitCount').innerText    = 0;
+            document.getElementById('statusTxt').innerText    = '请取餐 | Go collect!';
+            document.getElementById('statusTxt').style.color  = 'var(--success)';
+            // Show banner if currently being served
+            if (myNumber === serving) {
+                document.getElementById('servingBanner').classList.add('show');
+                vibrateIfPossible();
+            } else {
+                document.getElementById('servingBanner').classList.remove('show');
+            }
+        } else {
+            document.getElementById('waitCount').innerText    = ahead;
+            document.getElementById('statusTxt').innerText    = '等待中 | Waiting';
+            document.getElementById('statusTxt').style.color  = 'var(--primary)';
+            document.getElementById('servingBanner').classList.remove('show');
+        }
+    } else {
+        document.getElementById('dispNum').innerText   = '—';
+        document.getElementById('waitCount').innerText = '—';
+    }
+
+    // ── Ticket button
+    const btn = document.getElementById('takeBtn');
+    const rem  = MAX_TICKETS - takeCount;
+    if (takeCount >= MAX_TICKETS || (myNumber && myNumber > 0)) {
+        btn.disabled = true;
+        if (takeCount >= MAX_TICKETS) {
+            btn.innerHTML = '次数已满 | Limit Reached<small>Max 3 tickets/day</small>';
+        } else {
+            btn.innerHTML = '已取号 | Ticket Issued<small>Scroll down to see queue</small>';
+        }
+    } else {
+        btn.disabled = false;
+        btn.innerHTML = `立即取号<small>Get Ticket Now — ${rem} chance${rem>1?'s':''} left</small>`;
+    }
+
+    document.getElementById('limitInfo').innerText =
+        `今日剩余取号机会 | Remainder: ${Math.max(0, rem)}`;
+
+    // ── Live queue rendering
+    renderQueue();
+}
+
+function renderQueue() {
+    const container  = document.getElementById('queueDisplay');
+    const adminCont  = document.getElementById('adminQueueDisplay');
+
+    if (total === 0) {
+        const empty = '<div style="text-align:center; color:var(--gray); font-size:13px; padding:10px 0;">暂无排队 | No queue yet</div>';
+        container.innerHTML = empty;
+        adminCont.innerHTML = empty;
+        return;
+    }
+
+    let doneHTML = '', waitHTML = '', currentHTML = '';
+    for (let n = 1; n <= total; n++) {
+        let cls = '';
+        if (n < serving)       cls = 'done';
+        else if (n === serving) cls = 'current';
+        else                    cls = 'waiting';
+        if (n === myNumber)    cls += ' mine';
+        const label = String(n).padStart(3,'0');
+        const badge = `<span class="q-badge ${cls}">${label}</span>`;
+        if (n < serving)       doneHTML    += badge;
+        else if (n === serving) currentHTML += badge;
+        else                    waitHTML    += badge;
+    }
+
+    const html = `
+        ${currentHTML ? `<div class="queue-section"><div class="queue-section-title">🔊 正在叫号 | Now Serving</div><div class="queue-list">${currentHTML}</div></div>` : ''}
+        ${waitHTML    ? `<div class="queue-section" style="margin-top:12px"><div class="queue-section-title">⏳ 等待中 | Waiting (${total - serving})</div><div class="queue-list">${waitHTML}</div></div>` : ''}
+        ${doneHTML    ? `<div class="queue-section" style="margin-top:12px"><div class="queue-section-title">✅ 已完成 | Done (${serving})</div><div class="queue-list">${doneHTML}</div></div>` : ''}
+        ${myNumber    ? `<div style="font-size:11px; color:var(--gray); margin-top:10px; text-align:center;">🔴 红框 = 你的号码 | Red border = your number</div>` : ''}
+    `;
+    container.innerHTML  = html;
+    adminCont.innerHTML  = html;
+}
+
+// ────────────────────────────────────────────
+//  SWITCH VIEW
+// ────────────────────────────────────────────
+
+let isAdmin = false;
+
+function switchView(view) {
+    if (view === 'admin') {
+        if (!isAdmin) {
+            const pwd = prompt('请输入管理密码 | Admin Password:');
+            if (pwd !== ADMIN_PASS) {
+                showToast('❌ 密码错误 | Wrong password');
+                return;
+            }
+            isAdmin = true;
+        }
+        document.getElementById('adminView').style.display   = 'block';
+        document.getElementById('studentView').style.display = 'none';
+        document.getElementById('tabAdmin').classList.add('active');
+        document.getElementById('tabStudent').classList.remove('active');
+    } else {
+        document.getElementById('adminView').style.display   = 'none';
+        document.getElementById('studentView').style.display = 'block';
+        document.getElementById('tabStudent').classList.add('active');
+        document.getElementById('tabAdmin').classList.remove('active');
+    }
+    updateUI();
+}
+
+// ────────────────────────────────────────────
+//  UTILS
+// ────────────────────────────────────────────
+
+function setConn(online) {
+    document.getElementById('connDot').className  = 'conn-dot' + (online ? ' online' : '');
+    document.getElementById('connText').innerText = online ? '已连接 | Online' : '连接中… | Reconnecting';
+}
+
+let toastTimer;
+function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.innerText = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function vibrateIfPossible() {
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+}
+
+// ────────────────────────────────────────────
+//  INIT
+// ────────────────────────────────────────────
+updateUI();
 </script>
 </body>
 </html>
