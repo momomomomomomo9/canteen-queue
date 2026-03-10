@@ -1,133 +1,62 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>平和学校排队助手 | Queue Sync</title>
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <style>
-        :root { --primary: #1a458b; --bg: #f5f7fa; --gray: #909399; --success: #67c23a; --red: #ff3b30; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; color: #333; }
-        .nav-header { width: 100%; background: #fff; padding: 15px 0; text-align: center; font-weight: bold; font-size: 18px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
-        .container { width: 92%; max-width: 500px; margin-top: 15px; }
-        .tab-box { display: flex; background: #fff; border-radius: 12px; padding: 5px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .tab-item { flex: 1; text-align: center; padding: 8px; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; color: var(--gray); line-height: 1.2; }
-        .tab-item.active { background: var(--primary); color: #fff; }
-        .card { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .card-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
-        .num-box { text-align: center; padding: 10px 0; }
-        .num-value { font-size: 72px; font-weight: 800; color: var(--primary); margin: 5px 0; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .info-item { background: #fdfdfd; border: 1px solid #eef0f2; border-radius: 8px; padding: 10px; display: flex; align-items: center; }
-        .info-tag { font-size: 10px; color: #fff; background: var(--primary); padding: 2px 5px; border-radius: 4px; margin-right: 6px; white-space: nowrap; text-align: center; }
-        .info-text { font-size: 12px; font-weight: bold; }
-        .btn { width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
-        .btn-blue { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(26,69,139,0.3); }
-        .btn-green { background: var(--success); color: #fff; }
-        .btn:disabled { background: #dcdfe6 !important; color: #fff !important; cursor: not-allowed; }
-        .notice-card { background: #eef6ff; border-radius: 12px; padding: 15px; margin-top: 15px; font-size: 12px; line-height: 1.6; }
-        #adminView { display: none; }
-    </style>
-</head>
-<body>
-
-<div class="nav-header" id="statusHeader">● 正在连接同步器...</div>
-
-<div class="container">
-    <div class="tab-box">
-        <div id="tabStudent" class="tab-item active" onclick="switchView('student')">学生取号<br><small>Get Ticket</small></div>
-        <div id="tabAdmin" class="tab-item" onclick="switchView('admin')">队列管理<br><small>Management</small></div>
-    </div>
-
-    <div id="studentView">
-        <div class="card">
-            <div class="card-title">平和学校吃饭排队 | Pinghe Queue</div>
-            <div class="num-box">
-                <div style="font-size:16px; font-weight:600;">我的号码 | My Number</div>
-                <div class="num-value" id="dispNum">000</div>
-                <div style="font-size:12px; color:var(--gray)">取号时间: <span id="takeTime">--:--</span></div>
-            </div>
-            <div class="info-grid">
-                <div class="info-item"><span class="info-tag">状态</span><span class="info-text" id="statusTxt">未取号</span></div>
-                <div class="info-item"><span class="info-tag">叫号</span><span class="info-text" id="callTxt">无</span></div>
-            </div>
-            <div style="text-align:center; margin: 15px 0; font-size:13px;">
-                前面还有: <span id="waitCount" style="color:var(--red); font-weight:bold; font-size:18px;">0</span> 人
-            </div>
-            <button class="btn btn-blue" id="takeBtn" onclick="handleTake()">立即取号<br><small>Get Ticket Now</small></button>
-            <div id="limitInfo" style="text-align:center; font-size:12px; color:var(--gray); margin-top:10px;">今日剩余: 3</div>
-        </div>
-    </div>
-
-    <div id="adminView">
-        <div class="card">
-            <div class="card-title">管理端 | Admin</div>
-            <div style="display:flex; justify-content:space-around; background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:15px;">
-                <div><small>总发号</small><br><strong id="statTotal">0</strong></div>
-                <div><small>正在叫</small><br><strong id="statServing" style="color:var(--success);">0</strong></div>
-            </div>
-            <button class="btn btn-green" onclick="handleCall()">🔊 叫号下一位 | Call Next</button>
-            <button class="btn" style="background:#eee; color:#666; font-size:14px; margin-top:20px;" onclick="handleReset()">清空今日数据</button>
-        </div>
-    </div>
-
-    <div class="notice-card"><b>📢 公告:</b> 听到叫号请及时取餐。</div>
-</div>
-
 <script>
-    // --- 强制同步配置 ---
-    const TOPIC = "PH_SCHOOL_SYNC_99999"; 
-    // 使用备用连接地址
-    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
-        keepalive: 60,
-        reconnectPeriod: 1000, // 每秒重连一次直到成功
-        clientId: 'PH_' + Math.random().toString(16).substr(2, 8)
+    // 1. 更换为更稳定的多协议服务器
+    const TOPIC = "PH_SCHOOL_CANTEEN_FINAL_SYNC_2026"; 
+    const client = mqtt.connect('wss://broker.hivemq.com:8000/mqtt', {
+        clientId: 'PH_CLIENT_' + Math.random().toString(16).substr(2, 8),
+        keepalive: 30,
+        reconnectPeriod: 1000,
+        clean: true
     });
     
     let serving = 0, total = 0, myNumber = null;
     let today = new Date().toDateString();
     let count = Number(localStorage.getItem('takeCount_' + today)) || 0;
 
+    // 连接后立即订阅并尝试拉取最新数据
     client.on('connect', () => {
         client.subscribe(TOPIC);
-        document.getElementById('statusHeader').innerText = "✅ 平和学校 (同步正常)";
-        document.getElementById('statusHeader').style.color = "var(--success)";
-        // 刚上线时，向全网请求当前最新号码
-        client.publish(TOPIC, JSON.stringify({type:'request'})); 
+        console.log("Connected to Sync Server");
+        // 广播一个请求，让在线的其他手机把数据发过来
+        client.publish(TOPIC, JSON.stringify({type: 'request'}));
     });
 
     client.on('message', (t, m) => {
-        const data = JSON.parse(m.toString());
-        // 如果是数据更新消息
-        if (data.type === 'sync') {
-            serving = Number(data.serving);
-            total = Number(data.total);
-            updateUI();
-        } 
-        // 如果是新设备请求同步，本设备就把当前数据发给它
-        else if (data.type === 'request' && total > 0) {
-            broadcast();
-        }
+        try {
+            const data = JSON.parse(m.toString());
+            if (data.type === 'sync') {
+                serving = Number(data.serving);
+                total = Number(data.total);
+                updateUI();
+            } else if (data.type === 'request' && total > 0) {
+                // 如果有新手机加入并请求数据，本手机回复它
+                broadcast();
+            }
+        } catch(e) { console.error("Sync Error"); }
     });
 
+    // 模式切换（保持原逻辑）
     function switchView(view) {
+        const studentView = document.getElementById('studentView');
+        const adminView = document.getElementById('adminView');
         if(view === 'admin') {
-            if(prompt("密码:") !== "123456") return;
-            document.getElementById('adminView').style.display = 'block';
-            document.getElementById('studentView').style.display = 'none';
+            if(prompt("Admin Password:") !== "123456") return;
+            adminView.style.display = 'block';
+            studentView.style.display = 'none';
         } else {
-            document.getElementById('adminView').style.display = 'none';
-            document.getElementById('studentView').style.display = 'block';
+            adminView.style.display = 'none';
+            studentView.style.display = 'block';
         }
     }
 
     function handleTake() {
-        if(count >= 3) return alert("次数已满");
+        if(count >= 3) return alert("Limit Reached");
         total++; 
         myNumber = total; 
         count++;
         localStorage.setItem('takeCount_' + today, count);
-        document.getElementById('takeTime').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        if(document.getElementById('takeTime')) {
+            document.getElementById('takeTime').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        }
         broadcast();
         updateUI();
     }
@@ -135,19 +64,22 @@
     function handleCall() {
         if(serving < total) {
             serving++;
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance("请" + serving + "号取餐"));
+            if('speechSynthesis' in window) {
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance(serving + "号请取餐"));
+            }
             broadcast();
             updateUI();
         }
     }
 
     function handleReset() {
-        if(!confirm("确定清空？")) return;
+        if(!confirm("Reset?")) return;
         serving = 0; total = 0;
         broadcast();
         location.reload();
     }
 
+    // 核心同步发送
     function broadcast() {
         if(client.connected) {
             client.publish(TOPIC, JSON.stringify({
@@ -159,27 +91,25 @@
     }
 
     function updateUI() {
-        document.getElementById('callTxt').innerText = serving > 0 ? serving + " 号" : "无";
-        document.getElementById('statTotal').innerText = total;
-        document.getElementById('statServing').innerText = serving;
-        if(myNumber) {
+        // 自动适配你界面中的所有元素，不改变它们
+        if(document.getElementById('callTxt')) document.getElementById('callTxt').innerText = serving > 0 ? serving + " 号" : "无";
+        if(document.getElementById('statTotal')) document.getElementById('statTotal').innerText = total;
+        if(document.getElementById('statServing')) document.getElementById('statServing').innerText = serving;
+        if(myNumber && document.getElementById('dispNum')) {
             document.getElementById('dispNum').innerText = myNumber.toString().padStart(3,'0');
             let wait = myNumber - serving;
-            document.getElementById('waitCount').innerText = wait > 0 ? wait : 0;
-            document.getElementById('statusTxt').innerText = wait > 0 ? "排队中" : "请取餐";
-            document.getElementById('statusTxt').style.color = wait > 0 ? "var(--primary)" : "var(--success)";
+            if(document.getElementById('waitCount')) document.getElementById('waitCount').innerText = wait > 0 ? wait : 0;
+            if(document.getElementById('statusTxt')) {
+                document.getElementById('statusTxt').innerText = wait > 0 ? "排队中" : "请取餐";
+            }
         }
-        document.getElementById('limitInfo').innerText = "今日剩余: " + (3 - count);
-        if(count >= 3) {
-            document.getElementById('takeBtn').disabled = true;
-            document.getElementById('takeBtn').innerText = "次数已满";
+        if(document.getElementById('limitInfo')) document.getElementById('limitInfo').innerText = "今日剩余: " + (3 - count);
+        const takeBtn = document.getElementById('takeBtn');
+        if(takeBtn && count >= 3) {
+            takeBtn.disabled = true;
+            takeBtn.innerText = "次数已满";
         }
     }
 
-    client.on('error', () => {
-        document.getElementById('statusHeader').innerText = "⚠️ 同步故障 (请检查网络)";
-        document.getElementById('statusHeader').style.color = "var(--red)";
-    });
+    updateUI();
 </script>
-</body>
-</html>
