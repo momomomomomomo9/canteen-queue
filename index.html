@@ -10,33 +10,24 @@
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; color: #333; }
         .nav-header { width: 100%; background: #fff; padding: 15px 0; text-align: center; font-weight: bold; font-size: 18px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
         .container { width: 92%; max-width: 500px; margin-top: 15px; }
-
-        /* Mode Switcher */
         .tab-box { display: flex; background: #fff; border-radius: 12px; padding: 5px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .tab-item { flex: 1; text-align: center; padding: 8px; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; color: var(--gray); line-height: 1.2; }
         .tab-item.active { background: var(--primary); color: #fff; }
-
-        /* Card Section */
         .card { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 15px; }
         .card-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
-        
         .num-box { text-align: center; padding: 10px 0; }
         .num-label { font-size: 16px; font-weight: 600; }
         .num-value { font-size: 72px; font-weight: 800; color: var(--primary); margin: 5px 0; }
-        
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .info-item { background: #fdfdfd; border: 1px solid #eef0f2; border-radius: 8px; padding: 10px; display: flex; align-items: center; }
         .info-tag { font-size: 10px; color: #fff; background: var(--primary); padding: 2px 5px; border-radius: 4px; margin-right: 6px; white-space: nowrap; text-align: center; }
         .info-text { font-size: 12px; font-weight: bold; }
-
-        /* Buttons */
         .btn { width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
         .btn small { font-size: 11px; font-weight: normal; opacity: 0.8; margin-top: 2px; }
         .btn-blue { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(26,69,139,0.3); }
         .btn-green { background: var(--success); color: #fff; }
         .btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); margin-top: 15px; padding: 10px; font-size: 14px; }
         .btn:disabled { background: #dcdfe6 !important; color: #fff !important; cursor: not-allowed; box-shadow: none; }
-
         .notice-card { background: #eef6ff; border-radius: 12px; padding: 15px; margin-top: 15px; font-size: 12px; line-height: 1.6; }
         #adminView { display: none; }
         .fade { animation: fadeIn 0.4s ease; }
@@ -45,7 +36,7 @@
 </head>
 <body>
 
-<div class="nav-header">平和学校食堂 | Pinghe Canteen</div>
+<div class="nav-header" id="connStatus">平和学校食堂 | Pinghe Canteen</div>
 
 <div class="container">
     <div class="tab-box">
@@ -61,20 +52,14 @@
                 <div class="num-value" id="dispNum">000</div>
                 <div style="font-size:12px; color:var(--gray)">取号时间 | Time: <span id="takeTime">--:--</span></div>
             </div>
-
             <div class="info-grid">
                 <div class="info-item"><span class="info-tag">状态<br>Status</span><span class="info-text" id="statusTxt">未取号 | Idle</span></div>
                 <div class="info-item"><span class="info-tag">叫号<br>Serving</span><span class="info-text" id="callTxt">无 | None</span></div>
             </div>
-
             <div style="text-align:center; margin: 15px 0; font-size:13px;">
                 前面还有 | Waiting Ahead: <span id="waitCount" style="color:var(--red); font-weight:bold; font-size:18px;">0</span> 人
             </div>
-
-            <button class="btn btn-blue" id="takeBtn" onclick="handleTake()">
-                立即取号
-                <small>Get Ticket Now</small>
-            </button>
+            <button class="btn btn-blue" id="takeBtn" onclick="handleTake()">立即取号<small>Get Ticket Now</small></button>
             <div id="limitInfo" style="text-align:center; font-size:12px; color:var(--gray); margin-top:10px;">今日剩余取号机会 | Remainder: 3</div>
         </div>
     </div>
@@ -100,22 +85,31 @@
 </div>
 
 <script>
-    // 使用唯一的频道名，防止干扰
-    const TOPIC = "pinghe_canteen_final_v1";
+    // --- 核心同步配置 ---
+    // 确保所有手机使用同一个 TOPIC
+    const TOPIC = "pinghe_canteen_global_sync_888"; 
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
     
     let serving = 0, total = 0, myNumber = null;
     let today = new Date().toDateString();
-    
-    // 初始化 count，确保是数字类型
     let count = Number(localStorage.getItem('takeCount_' + today)) || 0;
 
-    client.on('connect', () => { client.subscribe(TOPIC); });
+    // 连接成功后订阅频道
+    client.on('connect', () => {
+        client.subscribe(TOPIC);
+        document.getElementById('connStatus').innerText = "平和学校食堂 (已同步)";
+        // 连接成功后请求一次最新数据
+        client.publish(TOPIC + "/request", "sync"); 
+    });
+
+    // 监听消息：收到任何一台手机的操作，全端同步
     client.on('message', (t, m) => {
         const data = JSON.parse(m.toString());
-        serving = Number(data.serving); 
-        total = Number(data.total);
-        updateUI();
+        if (data.type === 'update') {
+            serving = Number(data.serving);
+            total = Number(data.total);
+            updateUI(); // 收到消息立即刷新所有手机的界面
+        }
     });
 
     function switchView(view) {
@@ -134,23 +128,16 @@
     }
 
     function handleTake() {
-        // 关键修复：直接读取最新的 count 值进行判断
-        let currentCount = Number(localStorage.getItem('takeCount_' + today)) || 0;
+        if(count >= 3) { alert("今日次数已满 | Limit Reached"); return; }
         
-        if(currentCount >= 3) {
-            alert("今日次数已满 | Limit Reached");
-            return;
-        }
-
+        // 注意：取号是在当前最高号的基础上+1
         total++; 
         myNumber = total; 
-        currentCount++;
-        
-        localStorage.setItem('takeCount_' + today, currentCount);
-        count = currentCount; // 同步全局变量
-        
+        count++;
+        localStorage.setItem('takeCount_' + today, count);
         document.getElementById('takeTime').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        broadcast();
+        
+        broadcast(); // 发送同步信号
         updateUI();
     }
 
@@ -158,12 +145,13 @@
         if(serving < total) {
             serving++;
             window.speechSynthesis.speak(new SpeechSynthesisUtterance(`Please number ${serving} go to the counter`));
-            broadcast();
+            broadcast(); // 发送同步信号
+            updateUI();
         }
     }
 
     function handleReset() { 
-        if(confirm("确定清空？")) { 
+        if(confirm("确定清空数据？")) { 
             serving = 0; total = 0; 
             broadcast(); 
             localStorage.removeItem('takeCount_' + today);
@@ -171,7 +159,14 @@
         } 
     }
 
-    function broadcast() { client.publish(TOPIC, JSON.stringify({serving, total})); }
+    // 核心广播函数：向所有手机发送当前最新的 serving 和 total
+    function broadcast() {
+        client.publish(TOPIC, JSON.stringify({
+            type: 'update',
+            serving: serving,
+            total: total
+        }));
+    }
 
     function updateUI() {
         document.getElementById('callTxt').innerText = serving > 0 ? serving.toString().padStart(3,'0') + " 号" : "无 | None";
@@ -186,11 +181,7 @@
             document.getElementById('statusTxt').style.color = wait > 0 ? "var(--primary)" : "var(--success)";
         }
         
-        // 更新剩余次数显示
-        let displayRemainder = 3 - count;
-        document.getElementById('limitInfo').innerText = `今日剩余取号机会 | Remainder: ${displayRemainder < 0 ? 0 : displayRemainder}`;
-        
-        // 如果次数满了，禁用按钮
+        document.getElementById('limitInfo').innerText = `今日剩余取号机会 | Remainder: ${3 - count}`;
         if(count >= 3) {
             const btn = document.getElementById('takeBtn');
             btn.disabled = true;
@@ -198,7 +189,6 @@
         }
     }
 
-    // 页面加载时先跑一遍 UI 更新
     updateUI();
 </script>
 </body>
